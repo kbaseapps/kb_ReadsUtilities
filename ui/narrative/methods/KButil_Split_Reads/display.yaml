@@ -1,0 +1,55 @@
+#
+# define display information
+#
+name: Split Reads - v1.0.1
+tooltip: |
+    Split a Reads Library into evenly sized Reads Libraries
+screenshots: []
+
+icon: kb-pink.png
+
+#
+# define a set of similar methods that might be useful to the user
+#
+suggestions:
+    apps:
+        related:
+            []
+        next:
+            []
+    methods:
+        related:
+            []
+        next:
+            []
+
+#
+# Configure the display and description of parameters
+#
+parameters :
+    desc:
+        ui-name : |
+            Description
+        short-hint : |
+            Describe Purpose or Contents of Output ReadsSet
+        placeholder: |
+            Enter Description
+    input_ref:
+        ui-name : |
+            Reads library
+        short-hint : |
+            Reads Library Name here (SingleEndLibrary or PairedEndLibrary)
+    output_name:
+        ui-name : |
+            Output readsSet name
+        short-hint : |
+            Name for the Output ReadsSet Collection
+    split_num:
+        ui-name : |
+            Split number
+        short-hint : |
+            Number of Split Outputs
+
+
+description : |
+    <p>This method allows the user to split a Reads Library into evenly sized Reads Libraries, organized into a ReadsSet.</p>

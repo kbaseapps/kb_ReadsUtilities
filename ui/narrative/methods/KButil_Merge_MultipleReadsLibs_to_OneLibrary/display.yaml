@@ -1,0 +1,49 @@
+#
+# define display information
+#
+name: Merge Multiple ReadsLibs to One ReadsLib - v1.0.1
+tooltip: |
+    Merge a Multiple ReadsLibs into One ReadsLibrary
+screenshots: []
+
+icon: kb-pink.png
+
+#
+# define a set of similar methods that might be useful to the user
+#
+suggestions:
+    apps:
+        related:
+            []
+        next:
+            []
+    methods:
+        related:
+            []
+        next:
+            []
+
+#
+# Configure the display and description of parameters
+#
+parameters :
+    desc:
+        ui-name : |
+            Description
+        short-hint : |
+            Describe Purpose or Contents of Output ReadsLibrary
+        placeholder: |
+            Enter Description
+    input_refs:
+        ui-name : |
+            Input reads libraries
+        short-hint : |
+            Reads Lib Names here (SingleEndLibrary or PairedEndLibrary, but not both)
+    output_name:
+        ui-name : |
+            Output reads lib name
+        short-hint : |
+            Name for the Output Reads Library
+
+description : |
+    <p>This method allows the user to merge multiple Reads Libraries into one reads Library.</p>

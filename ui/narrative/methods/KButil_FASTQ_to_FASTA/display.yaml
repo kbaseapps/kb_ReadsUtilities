@@ -1,0 +1,44 @@
+#
+# define display information
+#
+name: Convert FASTQ to FASTA - v1.0.1
+tooltip: |
+    Turns SingleEndLibrary containing FASTQ into SingleEndLibrary containing FASTA
+screenshots: []
+
+icon: kb-pink.png
+
+#
+# define a set of similar methods that might be useful to the user
+#
+suggestions:
+    apps:
+        related:
+            []
+        next:
+            []
+    methods:
+        related:
+            []
+        next:
+            []
+
+#
+# Configure the display and description of parameters
+#
+parameters :
+    input_ref:
+        ui-name : |
+            Input FASTQ Object
+        short-hint : |
+            Input SingleEndLibrary containing FASTQ
+    output_name:
+        ui-name : |
+            Output FASTA Object
+        short-hint : |
+            Output SingleEndLibrary containing FASTA
+
+
+description : |
+    <p>This method converts a FASTQ SingleEndLibrary to a FASTA SingleEndLibrary.</p>
+
