@@ -54,8 +54,8 @@ class kb_ReadsUtilities:
     # the latter method is running.
     ######################################### noqa
     VERSION = "0.0.1"
-    GIT_URL = "https://github.com/kbaseapps/kb_ReadsUtilities"
-    GIT_COMMIT_HASH = "b59b0faeb860c56b556d8ee7417cdb3930623837"
+    GIT_URL = "https://github.com/dcchivian/kb_ReadsUtilities"
+    GIT_COMMIT_HASH = "f91d38a22404eee8ee72b0b638fdd179a2e6eaf9"
 
     #BEGIN_CLASS_HEADER
     workspaceURL = None
