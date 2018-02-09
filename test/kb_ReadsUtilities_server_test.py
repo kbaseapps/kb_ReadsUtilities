@@ -14,7 +14,6 @@ from Workspace.WorkspaceClient import Workspace as workspaceService
 from biokbase.AbstractHandle.Client import AbstractHandle as HandleService
 from kb_ReadsUtilities.kb_ReadsUtilitiesImpl import kb_ReadsUtilities
 from ReadsUtils.ReadsUtilsClient import ReadsUtils
-from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 
 
 class kb_ReadsUtilitiesTest(unittest.TestCase):
