@@ -1,0 +1,47 @@
+#
+# define display information
+#
+name: Add Insert Len to ReadsLibs - v1.0.1
+tooltip: |
+    Add Insert Len and Standard Dev to PairedEnd Reads Libraries
+screenshots: []
+
+icon: kb-pink.png
+
+#
+# define a set of similar methods that might be useful to the user
+#
+suggestions:
+    apps:
+        related:
+            []
+        next:
+            []
+    methods:
+        related:
+            []
+        next:
+            []
+
+#
+# Configure the display and description of parameters
+#
+parameters :
+    input_refs:
+        ui-name : |
+            Input reads libraries
+        short-hint : |
+            Paired End Reads Lib (or Set) Names here
+    insert_len:
+        ui-name : |
+            Insert length
+        short-hint : |
+            Insert length, including read lengths (e.g. for 2x150bp with a 150 base gap, enter "450.0")
+    insert_stddev:
+        ui-name : |
+            Insert length stddev
+        short-hint : |
+            Insert length standard deviation (may include decimal)
+
+description : |
+    <p>This method allows the user to Add Insert Len and Insert Standard Deviation to Paired End Reads Libraries.</p>

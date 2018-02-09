@@ -11,11 +11,14 @@ import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonClientCaller;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.RpcContext;
+import us.kbase.common.service.UnauthorizedException;
 
 /**
  * <p>Original spec-file module name: kb_ReadsUtilities</p>
  * <pre>
- * A KBase module: kb_ReadsUtilities
+ * ** A KBase module: kb_ReadsUtilities
+ * **
+ * ** This module contains basic utility Apps for manipulating Reads Libraries
  * </pre>
  */
 public class KbReadsUtilitiesClient {
@@ -28,6 +31,49 @@ public class KbReadsUtilitiesClient {
      */
     public KbReadsUtilitiesClient(URL url) {
         caller = new JsonClientCaller(url);
+    }
+    /** Constructs a client with a custom URL.
+     * @param url the URL of the service.
+     * @param token the user's authorization token.
+     * @throws UnauthorizedException if the token is not valid.
+     * @throws IOException if an IOException occurs when checking the token's
+     * validity.
+     */
+    public KbReadsUtilitiesClient(URL url, AuthToken token) throws UnauthorizedException, IOException {
+        caller = new JsonClientCaller(url, token);
+    }
+
+    /** Constructs a client with a custom URL.
+     * @param url the URL of the service.
+     * @param user the user name.
+     * @param password the password for the user name.
+     * @throws UnauthorizedException if the credentials are not valid.
+     * @throws IOException if an IOException occurs when checking the user's
+     * credentials.
+     */
+    public KbReadsUtilitiesClient(URL url, String user, String password) throws UnauthorizedException, IOException {
+        caller = new JsonClientCaller(url, user, password);
+    }
+
+    /** Constructs a client with a custom URL
+     * and a custom authorization service URL.
+     * @param url the URL of the service.
+     * @param user the user name.
+     * @param password the password for the user name.
+     * @param auth the URL of the authorization server.
+     * @throws UnauthorizedException if the credentials are not valid.
+     * @throws IOException if an IOException occurs when checking the user's
+     * credentials.
+     */
+    public KbReadsUtilitiesClient(URL url, String user, String password, URL auth) throws UnauthorizedException, IOException {
+        caller = new JsonClientCaller(url, user, password, auth);
+    }
+
+    /** Get the token this client uses to communicate with the server.
+     * @return the authorization token.
+     */
+    public AuthToken getToken() {
+        return caller.getToken();
     }
 
     /** Get the URL of the service with which this client communicates.
@@ -116,6 +162,142 @@ public class KbReadsUtilitiesClient {
 
     public void setServiceVersion(String newValue) {
         this.serviceVersion = newValue;
+    }
+
+    /**
+     * <p>Original spec-file function name: KButil_FASTQ_to_FASTA</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.kbreadsutilities.KButilFASTQToFASTAParams KButilFASTQToFASTAParams} (original type "KButil_FASTQ_to_FASTA_Params")
+     * @return   instance of type {@link us.kbase.kbreadsutilities.KButilFASTQToFASTAOutput KButilFASTQToFASTAOutput} (original type "KButil_FASTQ_to_FASTA_Output")
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public KButilFASTQToFASTAOutput kButilFASTQToFASTA(KButilFASTQToFASTAParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<KButilFASTQToFASTAOutput>> retType = new TypeReference<List<KButilFASTQToFASTAOutput>>() {};
+        List<KButilFASTQToFASTAOutput> res = caller.jsonrpcCall("kb_ReadsUtilities.KButil_FASTQ_to_FASTA", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: KButil_Split_Reads</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.kbreadsutilities.KButilSplitReadsParams KButilSplitReadsParams} (original type "KButil_Split_Reads_Params")
+     * @return   instance of type {@link us.kbase.kbreadsutilities.KButilSplitReadsOutput KButilSplitReadsOutput} (original type "KButil_Split_Reads_Output")
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public KButilSplitReadsOutput kButilSplitReads(KButilSplitReadsParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<KButilSplitReadsOutput>> retType = new TypeReference<List<KButilSplitReadsOutput>>() {};
+        List<KButilSplitReadsOutput> res = caller.jsonrpcCall("kb_ReadsUtilities.KButil_Split_Reads", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: KButil_Random_Subsample_Reads</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.kbreadsutilities.KButilRandomSubsampleReadsParams KButilRandomSubsampleReadsParams} (original type "KButil_Random_Subsample_Reads_Params")
+     * @return   instance of type {@link us.kbase.kbreadsutilities.KButilRandomSubsampleReadsOutput KButilRandomSubsampleReadsOutput} (original type "KButil_Random_Subsample_Reads_Output")
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public KButilRandomSubsampleReadsOutput kButilRandomSubsampleReads(KButilRandomSubsampleReadsParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<KButilRandomSubsampleReadsOutput>> retType = new TypeReference<List<KButilRandomSubsampleReadsOutput>>() {};
+        List<KButilRandomSubsampleReadsOutput> res = caller.jsonrpcCall("kb_ReadsUtilities.KButil_Random_Subsample_Reads", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: KButil_Merge_ReadsSet_to_OneLibrary</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.kbreadsutilities.KButilMergeReadsSetToOneLibraryParams KButilMergeReadsSetToOneLibraryParams} (original type "KButil_Merge_ReadsSet_to_OneLibrary_Params")
+     * @return   instance of type {@link us.kbase.kbreadsutilities.KButilMergeReadsSetToOneLibraryOutput KButilMergeReadsSetToOneLibraryOutput} (original type "KButil_Merge_ReadsSet_to_OneLibrary_Output")
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public KButilMergeReadsSetToOneLibraryOutput kButilMergeReadsSetToOneLibrary(KButilMergeReadsSetToOneLibraryParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<KButilMergeReadsSetToOneLibraryOutput>> retType = new TypeReference<List<KButilMergeReadsSetToOneLibraryOutput>>() {};
+        List<KButilMergeReadsSetToOneLibraryOutput> res = caller.jsonrpcCall("kb_ReadsUtilities.KButil_Merge_ReadsSet_to_OneLibrary", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: KButil_Merge_MultipleReadsLibs_to_OneLibrary</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.kbreadsutilities.KButilMergeMultipleReadsLibsToOneLibraryParams KButilMergeMultipleReadsLibsToOneLibraryParams} (original type "KButil_Merge_MultipleReadsLibs_to_OneLibrary_Params")
+     * @return   instance of type {@link us.kbase.kbreadsutilities.KButilMergeMultipleReadsLibsToOneLibraryOutput KButilMergeMultipleReadsLibsToOneLibraryOutput} (original type "KButil_Merge_MultipleReadsLibs_to_OneLibrary_Output")
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public KButilMergeMultipleReadsLibsToOneLibraryOutput kButilMergeMultipleReadsLibsToOneLibrary(KButilMergeMultipleReadsLibsToOneLibraryParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<KButilMergeMultipleReadsLibsToOneLibraryOutput>> retType = new TypeReference<List<KButilMergeMultipleReadsLibsToOneLibraryOutput>>() {};
+        List<KButilMergeMultipleReadsLibsToOneLibraryOutput> res = caller.jsonrpcCall("kb_ReadsUtilities.KButil_Merge_MultipleReadsLibs_to_OneLibrary", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.kbreadsutilities.KButilExtractUnpairedReadsParams KButilExtractUnpairedReadsParams} (original type "KButil_Extract_Unpaired_Reads_Params")
+     * @return   instance of type {@link us.kbase.kbreadsutilities.KButilExtractUnpairedReadsOutput KButilExtractUnpairedReadsOutput} (original type "KButil_Extract_Unpaired_Reads_Output")
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public KButilExtractUnpairedReadsOutput kButilExtractUnpairedReadsAndSynchronizePairs(KButilExtractUnpairedReadsParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<KButilExtractUnpairedReadsOutput>> retType = new TypeReference<List<KButilExtractUnpairedReadsOutput>>() {};
+        List<KButilExtractUnpairedReadsOutput> res = caller.jsonrpcCall("kb_ReadsUtilities.KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: KButil_Translate_ReadsLibs_QualScores</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.kbreadsutilities.KButilTranslateReadsLibsQualScoresParams KButilTranslateReadsLibsQualScoresParams} (original type "KButil_Translate_ReadsLibs_QualScores_Params")
+     * @return   instance of type {@link us.kbase.kbreadsutilities.KButilTranslateReadsLibsQualScoresOutput KButilTranslateReadsLibsQualScoresOutput} (original type "KButil_Translate_ReadsLibs_QualScores_Output")
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public KButilTranslateReadsLibsQualScoresOutput kButilTranslateReadsLibsQualScores(KButilTranslateReadsLibsQualScoresParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<KButilTranslateReadsLibsQualScoresOutput>> retType = new TypeReference<List<KButilTranslateReadsLibsQualScoresOutput>>() {};
+        List<KButilTranslateReadsLibsQualScoresOutput> res = caller.jsonrpcCall("kb_ReadsUtilities.KButil_Translate_ReadsLibs_QualScores", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: KButil_AddInsertLen_to_ReadsLibs</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.kbreadsutilities.KButilAddInsertLenToReadsLibsParams KButilAddInsertLenToReadsLibsParams} (original type "KButil_AddInsertLen_to_ReadsLibs_Params")
+     * @return   instance of type {@link us.kbase.kbreadsutilities.KButilAddInsertLenToReadsLibsOutput KButilAddInsertLenToReadsLibsOutput} (original type "KButil_AddInsertLen_to_ReadsLibs_Output")
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public KButilAddInsertLenToReadsLibsOutput kButilAddInsertLenToReadsLibs(KButilAddInsertLenToReadsLibsParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<KButilAddInsertLenToReadsLibsOutput>> retType = new TypeReference<List<KButilAddInsertLenToReadsLibsOutput>>() {};
+        List<KButilAddInsertLenToReadsLibsOutput> res = caller.jsonrpcCall("kb_ReadsUtilities.KButil_AddInsertLen_to_ReadsLibs", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
     }
 
     public Map<String, Object> status(RpcContext... jsonRpcContext) throws IOException, JsonClientException {

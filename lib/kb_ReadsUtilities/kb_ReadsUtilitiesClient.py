@@ -33,6 +33,196 @@ class kb_ReadsUtilities(object):
             trust_all_ssl_certificates=trust_all_ssl_certificates,
             auth_svc=auth_svc)
 
+    def KButil_FASTQ_to_FASTA(self, params, context=None):
+        """
+        :param params: instance of type "KButil_FASTQ_to_FASTA_Params"
+           (KButil_FASTQ_to_FASTA() ** ** Method for Converting a FASTQ
+           SingleEndLibrary to a FASTA SingleEndLibrary) -> structure:
+           parameter "workspace_name" of type "workspace_name" (** The
+           workspace object refs are of form: ** **    objects =
+           ws.get_objects([{'ref':
+           params['workspace_id']+'/'+params['obj_name']}]) ** ** "ref" means
+           the entire name combining the workspace id and the object name **
+           "id" is a numerical identifier of the workspace or object, and
+           should just be used for workspace ** "name" is a string identifier
+           of a workspace or object.  This is received from Narrative.),
+           parameter "input_ref" of type "data_obj_ref", parameter
+           "output_name" of type "data_obj_name"
+        :returns: instance of type "KButil_FASTQ_to_FASTA_Output" ->
+           structure: parameter "report_name" of type "data_obj_name",
+           parameter "report_ref" of type "data_obj_ref"
+        """
+        return self._client.call_method(
+            'kb_ReadsUtilities.KButil_FASTQ_to_FASTA',
+            [params], self._service_ver, context)
+
+    def KButil_Split_Reads(self, params, context=None):
+        """
+        :param params: instance of type "KButil_Split_Reads_Params"
+           (KButil_Split_Reads() ** **  Method for spliting a ReadsLibrary
+           into evenly sized ReadsLibraries) -> structure: parameter
+           "workspace_name" of type "workspace_name" (** The workspace object
+           refs are of form: ** **    objects = ws.get_objects([{'ref':
+           params['workspace_id']+'/'+params['obj_name']}]) ** ** "ref" means
+           the entire name combining the workspace id and the object name **
+           "id" is a numerical identifier of the workspace or object, and
+           should just be used for workspace ** "name" is a string identifier
+           of a workspace or object.  This is received from Narrative.),
+           parameter "input_ref" of type "data_obj_ref", parameter
+           "output_name" of type "data_obj_name", parameter "split_num" of
+           Long, parameter "desc" of String
+        :returns: instance of type "KButil_Split_Reads_Output" -> structure:
+           parameter "report_name" of type "data_obj_name", parameter
+           "report_ref" of type "data_obj_ref"
+        """
+        return self._client.call_method(
+            'kb_ReadsUtilities.KButil_Split_Reads',
+            [params], self._service_ver, context)
+
+    def KButil_Random_Subsample_Reads(self, params, context=None):
+        """
+        :param params: instance of type
+           "KButil_Random_Subsample_Reads_Params" -> structure: parameter
+           "workspace_name" of type "workspace_name" (** The workspace object
+           refs are of form: ** **    objects = ws.get_objects([{'ref':
+           params['workspace_id']+'/'+params['obj_name']}]) ** ** "ref" means
+           the entire name combining the workspace id and the object name **
+           "id" is a numerical identifier of the workspace or object, and
+           should just be used for workspace ** "name" is a string identifier
+           of a workspace or object.  This is received from Narrative.),
+           parameter "input_ref" of type "data_obj_ref", parameter
+           "output_name" of type "data_obj_name", parameter
+           "subsample_fraction" of type "Fractionate_Options"
+           (KButil_Random_Subsample_Reads() ** **  Method for random
+           subsampling of reads library) -> structure: parameter "split_num"
+           of Long, parameter "reads_num" of Long, parameter "reads_perc" of
+           Double, parameter "desc" of String, parameter "seed" of Long
+        :returns: instance of type "KButil_Random_Subsample_Reads_Output" ->
+           structure: parameter "report_name" of type "data_obj_name",
+           parameter "report_ref" of type "data_obj_ref"
+        """
+        return self._client.call_method(
+            'kb_ReadsUtilities.KButil_Random_Subsample_Reads',
+            [params], self._service_ver, context)
+
+    def KButil_Merge_ReadsSet_to_OneLibrary(self, params, context=None):
+        """
+        :param params: instance of type
+           "KButil_Merge_ReadsSet_to_OneLibrary_Params"
+           (KButil_Merge_ReadsSet_to_OneLibrary() ** **  Method for merging a
+           ReadsSet into one library) -> structure: parameter
+           "workspace_name" of type "workspace_name" (** The workspace object
+           refs are of form: ** **    objects = ws.get_objects([{'ref':
+           params['workspace_id']+'/'+params['obj_name']}]) ** ** "ref" means
+           the entire name combining the workspace id and the object name **
+           "id" is a numerical identifier of the workspace or object, and
+           should just be used for workspace ** "name" is a string identifier
+           of a workspace or object.  This is received from Narrative.),
+           parameter "input_ref" of type "data_obj_ref", parameter
+           "output_name" of type "data_obj_name", parameter "desc" of String
+        :returns: instance of type
+           "KButil_Merge_ReadsSet_to_OneLibrary_Output" -> structure:
+           parameter "report_name" of type "data_obj_name", parameter
+           "report_ref" of type "data_obj_ref"
+        """
+        return self._client.call_method(
+            'kb_ReadsUtilities.KButil_Merge_ReadsSet_to_OneLibrary',
+            [params], self._service_ver, context)
+
+    def KButil_Merge_MultipleReadsLibs_to_OneLibrary(self, params, context=None):
+        """
+        :param params: instance of type
+           "KButil_Merge_MultipleReadsLibs_to_OneLibrary_Params"
+           (KButil_Merge_MultipleReadsLibs_to_OneLibrary() ** **  Method for
+           merging ReadsLibs into one library) -> structure: parameter
+           "workspace_name" of type "workspace_name" (** The workspace object
+           refs are of form: ** **    objects = ws.get_objects([{'ref':
+           params['workspace_id']+'/'+params['obj_name']}]) ** ** "ref" means
+           the entire name combining the workspace id and the object name **
+           "id" is a numerical identifier of the workspace or object, and
+           should just be used for workspace ** "name" is a string identifier
+           of a workspace or object.  This is received from Narrative.),
+           parameter "input_refs" of type "data_obj_ref", parameter
+           "output_name" of type "data_obj_name", parameter "desc" of String
+        :returns: instance of type
+           "KButil_Merge_MultipleReadsLibs_to_OneLibrary_Output" ->
+           structure: parameter "report_name" of type "data_obj_name",
+           parameter "report_ref" of type "data_obj_ref"
+        """
+        return self._client.call_method(
+            'kb_ReadsUtilities.KButil_Merge_MultipleReadsLibs_to_OneLibrary',
+            [params], self._service_ver, context)
+
+    def KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs(self, params, context=None):
+        """
+        :param params: instance of type
+           "KButil_Extract_Unpaired_Reads_Params"
+           (KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs() ** ** 
+           Method for removing unpaired reads from a paired end library or
+           set and matching the order of reads) -> structure: parameter
+           "workspace_name" of type "workspace_name" (** The workspace object
+           refs are of form: ** **    objects = ws.get_objects([{'ref':
+           params['workspace_id']+'/'+params['obj_name']}]) ** ** "ref" means
+           the entire name combining the workspace id and the object name **
+           "id" is a numerical identifier of the workspace or object, and
+           should just be used for workspace ** "name" is a string identifier
+           of a workspace or object.  This is received from Narrative.),
+           parameter "input_ref" of type "data_obj_ref", parameter
+           "output_name" of type "data_obj_name", parameter "desc" of String
+        :returns: instance of type "KButil_Extract_Unpaired_Reads_Output" ->
+           structure: parameter "report_name" of type "data_obj_name",
+           parameter "report_ref" of type "data_obj_ref"
+        """
+        return self._client.call_method(
+            'kb_ReadsUtilities.KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs',
+            [params], self._service_ver, context)
+
+    def KButil_Translate_ReadsLibs_QualScores(self, params, context=None):
+        """
+        :param params: instance of type
+           "KButil_Translate_ReadsLibs_QualScores_Params"
+           (KButil_Translate_ReadsLibs_QualScores() ** **  Method for
+           Translating ReadsLibs Qual scores) -> structure: parameter
+           "workspace_name" of type "workspace_name" (** The workspace object
+           refs are of form: ** **    objects = ws.get_objects([{'ref':
+           params['workspace_id']+'/'+params['obj_name']}]) ** ** "ref" means
+           the entire name combining the workspace id and the object name **
+           "id" is a numerical identifier of the workspace or object, and
+           should just be used for workspace ** "name" is a string identifier
+           of a workspace or object.  This is received from Narrative.),
+           parameter "input_refs" of type "data_obj_ref"
+        :returns: instance of type
+           "KButil_Translate_ReadsLibs_QualScores_Output" -> structure:
+           parameter "report_name" of type "data_obj_name", parameter
+           "report_ref" of type "data_obj_ref"
+        """
+        return self._client.call_method(
+            'kb_ReadsUtilities.KButil_Translate_ReadsLibs_QualScores',
+            [params], self._service_ver, context)
+
+    def KButil_AddInsertLen_to_ReadsLibs(self, params, context=None):
+        """
+        :param params: instance of type
+           "KButil_AddInsertLen_to_ReadsLibs_Params"
+           (KButil_AddInsertLen_to_ReadsLibs() ** **  Method for Adding
+           Insert Len to PairedEnd ReadsLibs) -> structure: parameter
+           "workspace_name" of type "workspace_name" (** The workspace object
+           refs are of form: ** **    objects = ws.get_objects([{'ref':
+           params['workspace_id']+'/'+params['obj_name']}]) ** ** "ref" means
+           the entire name combining the workspace id and the object name **
+           "id" is a numerical identifier of the workspace or object, and
+           should just be used for workspace ** "name" is a string identifier
+           of a workspace or object.  This is received from Narrative.),
+           parameter "input_refs" of type "data_obj_ref", parameter
+           "insert_len" of Double, parameter "insert_stddev" of Double
+        :returns: instance of type "KButil_AddInsertLen_to_ReadsLibs_Output"
+           -> structure: parameter "report_name" of type "data_obj_name",
+           parameter "report_ref" of type "data_obj_ref"
+        """
+        return self._client.call_method(
+            'kb_ReadsUtilities.KButil_AddInsertLen_to_ReadsLibs',
+            [params], self._service_ver, context)
+
     def status(self, context=None):
         return self._client.call_method('kb_ReadsUtilities.status',
                                         [], self._service_ver, context)

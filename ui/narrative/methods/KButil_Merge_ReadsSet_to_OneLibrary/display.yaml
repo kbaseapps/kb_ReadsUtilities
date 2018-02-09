@@ -1,0 +1,49 @@
+#
+# define display information
+#
+name: Merge ReadsSet to One Library - v1.0.1
+tooltip: |
+    Merge a ReadsSet with multiple libraries into One Library
+screenshots: []
+
+icon: kb-pink.png
+
+#
+# define a set of similar methods that might be useful to the user
+#
+suggestions:
+    apps:
+        related:
+            []
+        next:
+            []
+    methods:
+        related:
+            []
+        next:
+            []
+
+#
+# Configure the display and description of parameters
+#
+parameters :
+    desc:
+        ui-name : |
+            Description
+        short-hint : |
+            Describe Purpose or Contents of Output Reads Library
+        placeholder: |
+            Enter Description
+    input_ref:
+        ui-name : |
+            Reads set
+        short-hint : |
+            Reads Set Name here (SingleEndLibrary or PairedEndLibrary)
+    output_name:
+        ui-name : |
+            Output reads library name
+        short-hint : |
+            Name for the Output Reads Library
+
+description : |
+    <p>This method allows the user to merge the Reads Libraries from a Reads Set into one Reads Library.</p>

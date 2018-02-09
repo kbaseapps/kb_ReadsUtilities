@@ -1,0 +1,79 @@
+{
+    "ver": "0.0.1",
+    "authors": [
+        "dylan"
+    ],
+    "contact": "http://kbase.us/contact-us/",
+    "visible": false,
+    "categories": ["inactive","util","reads"],
+    "widgets": {
+        "input": null,
+        "output": "kbaseReportView"
+    },
+    "parameters": [ 
+        {
+            "id": "input_ref",
+            "optional": true,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "" ],
+            "field_type": "text",
+            "text_options": {
+                "valid_ws_types": [ "KBaseFile.SingleEndLibrary" ]
+            }
+        },
+        {
+            "id": "output_name",
+            "optional": false,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "" ],
+            "field_type": "text",
+            "text_options": {
+                "valid_ws_types": [ "KBaseFile.SingleEndLibrary" ],
+		"is_output_name": true		  
+            }
+        }
+    ],
+    "behavior": {
+        "service-mapping": {
+            "url": "",
+            "name": "kb_ReadsUtilities",
+            "method": "KButil_FASTQ_to_FASTA",
+            "input_mapping": [
+                {
+                    "narrative_system_variable": "workspace",
+                    "target_property": "workspace_name"
+                },
+                {
+                    "input_parameter": "input_ref",
+                    "target_property": "input_ref",
+		    "target_type_transform": "resolved-ref"
+                },
+                {
+                    "input_parameter": "output_name",
+                    "target_property": "output_name"
+                }
+            ],
+            "output_mapping": [
+                {
+                    "narrative_system_variable": "workspace",
+                    "target_property": "workspace_name"
+                },
+                {
+                    "service_method_output_path": [0, "report_name"],
+                    "target_property": "report_name"
+                },
+                {
+                    "service_method_output_path": [0, "report_ref"],
+                    "target_property": "report_ref"
+                },
+                {
+		    "constant_value": "1",
+                    "target_property": "report_window_line_height"
+                }
+            ]
+        }
+    },
+    "job_id_output_field": "docker"
+}

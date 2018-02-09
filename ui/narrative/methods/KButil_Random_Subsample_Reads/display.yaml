@@ -1,0 +1,76 @@
+#
+# define display information
+#
+name: Randomly Subsample Reads - v1.0.1
+tooltip: |
+    Split a Reads Library into a set of randomly subsampled Reads Libraries
+screenshots: []
+
+icon: kb-pink.png
+
+#
+# define a set of similar methods that might be useful to the user
+#
+suggestions:
+    apps:
+        related:
+            []
+        next:
+            []
+    methods:
+        related:
+            []
+        next:
+            []
+
+#
+# Configure the display and description of parameters
+#
+parameters :
+    desc:
+        ui-name : |
+            Description
+        short-hint : |
+            Describe Purpose or Contents of Output ReadsSet
+        placeholder: |
+            Enter Description
+    input_ref:
+        ui-name : |
+            Reads library
+        short-hint : |
+            Reads Library Name here (SingleEndLibrary or PairedEndLibrary)
+    output_name:
+        ui-name : |
+            Output readsSet name
+        short-hint : |
+            Name for the Output ReadsSet
+    split_num:
+        ui-name : |
+            Split number
+        short-hint : |
+            Number of Split Outputs
+    reads_num:
+        ui-name : |
+            Num reads
+        short-hint : |
+            Number of reads to put into each library sample
+    reads_perc:
+        ui-name : |
+            or Perc reads (1-100)
+        short-hint : |
+            Percentage of original reads library to put into each sample library
+    seed:
+        ui-name : |
+            Random Seed (optional)
+        short-hint : |
+            Specify seed for Randomizer if you want repeatable results
+
+parameter-groups :
+    subsample_fraction :
+        ui-name: |
+            Subsample Fraction
+        short-hint : |
+            Either provide number of reads per sublibrary or percentage of original library (or just number of split libraries to capture all reads)
+
+description : |
+    <p>This method allows the user to split a Reads Library into a randomly subsampled Reads Libraries, organized into a ReadsSet.</p>
