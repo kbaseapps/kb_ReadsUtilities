@@ -1,7 +1,7 @@
 #
 # define display information
 #
-name: Extract Unpaired Reads and Synchronize Pairs - v1.0.1
+name: Extract Unpaired Reads and Synchronize Pairs - v1.0.0
 tooltip: |
     Extract unpaired reads from PairedEnd reads libraries or reads sets and match the order of paired reads
 

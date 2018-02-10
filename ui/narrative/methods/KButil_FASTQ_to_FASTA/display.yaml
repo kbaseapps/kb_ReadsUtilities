@@ -1,7 +1,7 @@
 #
 # define display information
 #
-name: Convert FASTQ to FASTA - v1.0.1
+name: Convert FASTQ to FASTA - v1.0.0
 tooltip: |
     Turns SingleEndLibrary containing FASTQ into SingleEndLibrary containing FASTA
 screenshots: []

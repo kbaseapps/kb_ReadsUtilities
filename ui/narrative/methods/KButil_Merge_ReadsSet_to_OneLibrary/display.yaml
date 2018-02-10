@@ -1,7 +1,7 @@
 #
 # define display information
 #
-name: Merge ReadsSet to One Library - v1.0.1
+name: Merge ReadsSet to One Library - v1.0.0
 tooltip: |
     Merge a ReadsSet with multiple libraries into One Library
 screenshots: []

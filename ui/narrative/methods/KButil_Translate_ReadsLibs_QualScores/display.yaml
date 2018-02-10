@@ -1,7 +1,7 @@
 #
 # define display information
 #
-name: Translate ReadsLibs Qual Scores - v1.0.1
+name: Translate ReadsLibs Qual Scores - v1.0.0
 tooltip: |
     Translate ReadsLibs from phred64 to phred33
 screenshots: []

@@ -1,7 +1,7 @@
 #
 # define display information
 #
-name: Add Insert Len to ReadsLibs - v1.0.1
+name: Add Insert Len to ReadsLibs - v1.0.0
 tooltip: |
     Add Insert Len and Standard Dev to PairedEnd Reads Libraries
 screenshots: []
