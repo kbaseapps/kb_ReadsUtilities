@@ -53,9 +53,9 @@ class kb_ReadsUtilities:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "1.0.0"
-    GIT_URL = "https://github.com/dcchivian/kb_ReadsUtilities"
-    GIT_COMMIT_HASH = "f91d38a22404eee8ee72b0b638fdd179a2e6eaf9"
+    VERSION = "1.0.1"
+    GIT_URL = "https://github.com/kbaseapps/kb_ReadsUtilities"
+    GIT_COMMIT_HASH = "0b8cc5b91985e83d416f2e71ac85e936f8ebca44"
 
     #BEGIN_CLASS_HEADER
     workspaceURL = None
