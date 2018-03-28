@@ -524,7 +524,7 @@ class kb_ReadsUtilities:
             paired_lib_i = dict()
             unpaired_buf_size = 0
             paired_buf_size = 100000
-            recs_beep_n = 100000
+            recs_beep_n = 1000000
 
             # read fwd file to get fwd ids
 #            rec_cnt = 0  # DEBUG
@@ -577,7 +577,7 @@ class kb_ReadsUtilities:
                                 paired_lib_i[last_read_id] = lib_i
                                 paired_output_reads_file_handles[lib_i].writelines(rec_buf)
                                 paired_cnt += 1
-                                if paired_cnt % recs_beep_n == 0:
+                                if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                                     self.log(console,"\t"+str(paired_cnt)+" recs processed")
                             else:
                                 unpaired_rev_buf.extend(rec_buf)
@@ -604,7 +604,7 @@ class kb_ReadsUtilities:
                         paired_lib_i[last_read_id] = lib_i
                         paired_output_reads_file_handles[lib_i].writelines(rec_buf)
                         paired_cnt += 1
-                        if paired_cnt % recs_beep_n == 0:
+                        if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                             self.log(console,"\t"+str(paired_cnt)+" recs processed")
                     else:
                         unpaired_rev_buf.extend(rec_buf)
@@ -646,7 +646,7 @@ class kb_ReadsUtilities:
                                 lib_i = paired_lib_i[last_read_id]
                                 paired_output_reads_file_handles[lib_i].writelines(rec_buf)
                                 paired_cnt += 1
-                                if paired_cnt % recs_beep_n == 0:
+                                if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                                     self.log(console,"\t"+str(paired_cnt)+" recs processed")
                             else:
                                 unpaired_fwd_buf.extend(rec_buf)
@@ -668,7 +668,7 @@ class kb_ReadsUtilities:
                         lib_i = paired_lib_i[last_read_id]
                         paired_output_reads_file_handles[lib_i].writelines(rec_buf)
                         paired_cnt += 1
-                        if paired_cnt % recs_beep_n == 0:
+                        if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                             self.log(console,"\t"+str(paired_cnt)+" recs processed")
                     else:
                         unpaired_fwd_buf.extend(rec_buf)
@@ -783,7 +783,7 @@ class kb_ReadsUtilities:
             rec_buf = []
             last_read_id = None
             paired_cnt = 0
-            recs_beep_n = 100000
+            recs_beep_n = 1000000
             with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
@@ -798,12 +798,12 @@ class kb_ReadsUtilities:
                             total_paired_reads_by_set[lib_i] += 1
                             paired_output_reads_file_handles[lib_i].writelines(rec_buf)
                             paired_cnt += 1
-                            if paired_cnt % recs_beep_n == 0:
+                            if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                                 self.log(console,"\t"+str(paired_cnt)+" recs processed")
                             rec_buf = []
                         read_id = line.rstrip('\n')
                         read_id = re.sub ("[ \t]+.*$", "", read_id)
-                        #read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
+                        read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
                         last_read_id = read_id
                     rec_buf.append(line)
                 # last rec
@@ -812,7 +812,7 @@ class kb_ReadsUtilities:
                     total_paired_reads_by_set[lib_i] += 1
                     paired_output_reads_file_handles[lib_i].writelines(rec_buf)
                     paired_cnt += 1
-                    if paired_cnt % recs_beep_n == 0:
+                    if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                         self.log(console,"\t"+str(paired_cnt)+" recs processed")
                     rec_buf = []
 
@@ -1012,6 +1012,7 @@ class kb_ReadsUtilities:
             
             input_reads_ref = params['input_ref']
             input_reads_obj_info = wsClient.get_object_info_new ({'objects':[{'ref':input_reads_ref}]})[0]
+            input_reads_obj_name = input_reads_obj_info[NAME_I]
             input_reads_obj_type = input_reads_obj_info[TYPE_I]
             input_reads_obj_type = re.sub ('-[0-9]+\.[0-9]+$', "", input_reads_obj_type)  # remove trailing version
             #input_reads_obj_version = input_reads_obj_info[VERSION_I]  # this is object version, not type version
@@ -1065,7 +1066,7 @@ class kb_ReadsUtilities:
             paired_ids_list = []
             paired_lib_i = dict()
             paired_buf_size = 100000
-            recs_beep_n = 100000
+            recs_beep_n = 1000000
 
             # read fwd file to get fwd ids
 #            rec_cnt = 0  # DEBUG
@@ -1164,7 +1165,7 @@ class kb_ReadsUtilities:
                                 paired_output_reads_file_handles[lib_i].writelines(rec_buf)
                                 paired_cnt += 1
                                 total_paired_reads_by_set[lib_i] += 1
-                                if paired_cnt % recs_beep_n == 0:
+                                if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                                     self.log(console,"\t"+str(paired_cnt)+" recs processed")
                             else:
                                 #unpaired_fwd_buf.extend(rec_buf)
@@ -1187,7 +1188,7 @@ class kb_ReadsUtilities:
                         lib_i = paired_lib_i[last_read_id]
                         paired_output_reads_file_handles[lib_i].writelines(rec_buf)
                         paired_cnt += 1
-                        if paired_cnt % recs_beep_n == 0:
+                        if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                             self.log(console,"\t"+str(paired_cnt)+" recs processed")
                     else:
                         #unpaired_fwd_buf.extend(rec_buf)
@@ -1225,7 +1226,7 @@ class kb_ReadsUtilities:
                                 lib_i = paired_lib_i[last_read_id]
                                 paired_output_reads_file_handles[lib_i].writelines(rec_buf)
                                 paired_cnt += 1
-                                if paired_cnt % recs_beep_n == 0:
+                                if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                                     self.log(console,"\t"+str(paired_cnt)+" recs processed")
                             else:
                                 #unpaired_fwd_buf.extend(rec_buf)
@@ -1248,7 +1249,7 @@ class kb_ReadsUtilities:
                         lib_i = paired_lib_i[last_read_id]
                         paired_output_reads_file_handles[lib_i].writelines(rec_buf)
                         paired_cnt += 1
-                        if paired_cnt % recs_beep_n == 0:
+                        if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                             self.log(console,"\t"+str(paired_cnt)+" recs processed")
                     else:
                         #unpaired_fwd_buf.extend(rec_buf)
@@ -1318,7 +1319,7 @@ class kb_ReadsUtilities:
             paired_ids_list = []
             paired_lib_i = dict()
             paired_buf_size = 100000
-            recs_beep_n = 100000
+            recs_beep_n = 1000000
 
             with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
                 rec_line_i = -1
@@ -1332,6 +1333,8 @@ class kb_ReadsUtilities:
                         read_id = line.rstrip('\n')
                         read_id = re.sub ("[ \t]+.*$", "", read_id)
                         read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
+                        if read_id in paired_ids:
+                            self.log (console, "WARNING: repeat read_id "+read_id+" in reads library "+input_reads_obj_name)
                         paired_ids[read_id] = True
                         paired_ids_list.append(read_id)
                         # DEBUG
@@ -1379,7 +1382,7 @@ class kb_ReadsUtilities:
             rec_buf = []
             last_read_id = None
             paired_cnt = 0
-            recs_beep_n = 100000
+            recs_beep_n = 1000000
             with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
@@ -1398,12 +1401,12 @@ class kb_ReadsUtilities:
                                 paired_cnt += 1
                             except:
                                 pass
-                            if paired_cnt % recs_beep_n == 0:
+                            if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                                 self.log(console,"\t"+str(paired_cnt)+" recs processed")
                             rec_buf = []
                         read_id = line.rstrip('\n')
                         read_id = re.sub ("[ \t]+.*$", "", read_id)
-                        #read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
+                        read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
                         last_read_id = read_id
                     rec_buf.append(line)
                 # last rec
@@ -1416,7 +1419,7 @@ class kb_ReadsUtilities:
                             paired_cnt += 1
                         except:
                             pass
-                    if paired_cnt % recs_beep_n == 0:
+                    if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                         self.log(console,"\t"+str(paired_cnt)+" recs processed")
                     rec_buf = []
 
@@ -2230,7 +2233,7 @@ class kb_ReadsUtilities:
             rev_ids_order = []
             unpaired_buf_size = 100000
             paired_buf_size = 100000
-            recs_beep_n = 100000
+            recs_beep_n = 1000000
 
             # read rev file to get rev ids and order
             rec_cnt = 0
@@ -2356,7 +2359,7 @@ class kb_ReadsUtilities:
                             if capture_type_paired:
                                 paired_output_reads_file_handle.writelines(rec_buf)
                                 paired_cnt += 1
-                                #if paired_cnt % recs_beep_n == 0:
+                                #if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                                 #    self.log(console,"\t"+str(paired_cnt)+" recs processed")
                             else:
                                 unpaired_output_reads_file_handle.writelines(rec_buf)
@@ -2377,7 +2380,7 @@ class kb_ReadsUtilities:
                     if capture_type_paired:
                         paired_output_reads_file_handle.writelines(rec_buf)
                         paired_cnt += 1
-                        #if paired_cnt % recs_beep_n == 0:
+                        #if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                         #    self.log(console,"\t"+str(paired_cnt)+" recs processed")
                     else:
                         unpaired_output_reads_file_handle.writelines(rec_buf)
@@ -2442,7 +2445,7 @@ class kb_ReadsUtilities:
                                 else:
                                     paired_unsynch_buf[last_read_id] = rec_buf
 
-                                #if paired_cnt % recs_beep_n == 0:
+                                #if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                                 #    self.log(console,"\t"+str(paired_cnt)+" recs processed")
                             else:
                                 unpaired_cnt += 1
@@ -2482,7 +2485,7 @@ class kb_ReadsUtilities:
                             else:
                                 paired_unsynch_buf[last_read_id] = rec_buf
 
-                            #if paired_cnt % recs_beep_n == 0:
+                            #if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                             #    self.log(console,"\t"+str(paired_cnt)+" recs processed")
                         else:
                             unpaired_cnt += 1
