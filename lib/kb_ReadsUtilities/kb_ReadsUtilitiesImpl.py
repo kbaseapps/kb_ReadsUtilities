@@ -1316,6 +1316,10 @@ class kb_ReadsUtilities:
             self.log (console, "DETERMINING IDS")  # DEBUG
             paired_ids = dict()
             paired_ids_list = []
+            paired_lib_i = dict()
+            paired_buf_size = 100000
+            recs_beep_n = 100000
+
             with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
