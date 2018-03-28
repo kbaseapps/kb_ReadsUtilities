@@ -823,7 +823,7 @@ class kb_ReadsUtilities:
             # store report
             #
             for lib_i in range(params['split_num']):
-                report += "PAIRED READS IN SET "+str(lib_i)+": "+str(total_paired_reads_by_set[lib_i])+"\n"
+                report += "SINGLE END READS IN SET "+str(lib_i)+": "+str(total_paired_reads_by_set[lib_i])+"\n"
 
 
             # upload reads
@@ -1431,7 +1431,7 @@ class kb_ReadsUtilities:
             #
             report += "TOTAL READS: "+str(total_paired_reads)+"\n"
             for lib_i in range(params['subsample_fraction']['split_num']):
-                report += "PAIRED READS IN SET "+str(lib_i)+": "+str(total_paired_reads_by_set[lib_i])+"\n"
+                report += "SINGLE END READS IN SET "+str(lib_i)+": "+str(total_paired_reads_by_set[lib_i])+"\n"
 
 
             # upload reads
