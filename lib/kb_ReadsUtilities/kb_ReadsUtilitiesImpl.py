@@ -791,10 +791,10 @@ class kb_ReadsUtilities:
                     if rec_line_i == 3:
                         rec_line_i = -1
                     elif rec_line_i == 0:
-                        total_paired_reads += 1
                         if not line.startswith('@'):
                             raise ValueError ("badly formatted rec line: '"+line+"'")
                         if last_read_id != None:
+                            total_paired_reads += 1
                             lib_i = paired_cnt % params['split_num']
                             total_paired_reads_by_set[lib_i] += 1
                             paired_output_reads_file_handles[lib_i].writelines(rec_buf)
