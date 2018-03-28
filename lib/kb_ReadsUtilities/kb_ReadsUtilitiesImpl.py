@@ -829,6 +829,8 @@ class kb_ReadsUtilities:
             # upload reads
             #
             self.log (console, "UPLOADING SPLIT SINGLE END READS")  # DEBUG
+            unpaired_fwd_ref = None
+            unpaired_rev_ref = None
             paired_obj_refs = []
             for lib_i in range(params['split_num']):
                 output_fwd_paired_file_path = output_fwd_paired_file_path_base+"-"+str(lib_i)+".fastq"
@@ -1312,6 +1314,12 @@ class kb_ReadsUtilities:
 
             # get "paired" ids
             self.log (console, "DETERMINING IDS")  # DEBUG
+            paired_ids = dict()
+            paired_ids_list = []
+            paired_lib_i = dict()
+            paired_buf_size = 100000
+            recs_beep_n = 100000
+
             with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
