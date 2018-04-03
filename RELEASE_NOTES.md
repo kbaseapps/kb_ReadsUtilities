@@ -1,6 +1,7 @@
 ### Version 1.0.1
 __Changes__
 - fixed Single End Library input for random_subsample() and split_reads()
+- cleaned up documentation pages
 
 ### Version 1.0.0
 - Initial release version

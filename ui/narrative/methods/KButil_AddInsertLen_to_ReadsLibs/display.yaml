@@ -1,10 +1,11 @@
 #
 # define display information
 #
-name: Add Insert Len to ReadsLibs - v1.0.0
+name: Add Insert Length to Reads Libraries - v1.0.1
 tooltip: |
-    Add Insert Len and Standard Dev to PairedEnd Reads Libraries
-screenshots: []
+    Add Insert Length and Standard Deviation to Paired End Reads Libraries
+screenshots:
+    - AddInsertLen_to_ReadsLibs.png
 
 icon: kb-pink.png
 
@@ -44,4 +45,11 @@ parameters :
             Insert length standard deviation (may include decimal)
 
 description : |
-    <p>This method allows the user to Add Insert Len and Insert Standard Deviation to Paired End Reads Libraries.</p>
+    <p>This App allows the user to Add Insert Len and Insert Standard Deviation to <b><i>Paired End Reads Libraries</i></b>.</p>
+    <hr>
+    <p>written for KBase by <a href="mailto:DCChivian@lbl.gov">Dylan Chivian</a></p>
+    <hr>
+    <p>
+    <h3>Description</h3>
+    <b>Add Insert Length to Reads Libraries</b> allows a user to fill in missing Insert Length and Standard Deviation values to Paired End Libraries for those Apps, such as assemblers, that take advantage or require such information.  Insert Length includes the length of each read as well as the gap inbetween (e.g., 2x150bp reads + 150bp gap = 450bp insert length).  The input object itself is modified and the version of the object is increased by one.
+    </p>

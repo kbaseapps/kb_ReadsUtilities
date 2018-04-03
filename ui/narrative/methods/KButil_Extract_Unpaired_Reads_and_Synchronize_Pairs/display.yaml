@@ -1,11 +1,12 @@
 #
 # define display information
 #
-name: Extract Unpaired Reads and Synchronize Pairs - v1.0.0
+name: Extract Unpaired Reads and Synchronize Pairs - v1.0.1
 tooltip: |
     Extract unpaired reads from PairedEnd reads libraries or reads sets and match the order of paired reads
 
-screenshots: []
+screenshots:
+    - Extract_Unpaired_Reads_and_Synchronize_Pairs.png
 
 icon: kb-pink.png
 
@@ -47,4 +48,13 @@ parameters :
             Name for the Output Reads Libraries or ReadsSet
 
 description : |
-    <p>This method allows the user to remove unpaired reads from a PairedEnd Reads Library or Reads Set.  Unpaired fwd and rev reads are saved as separate SingleEnd Read Libraries.  Pair records are reordered to match in FORWARD and REVERSE</p>
+    <p>This App allows the user to remove unpaired reads from a <b><i>Paired End Reads Library</i></b> or <b><i>Reads Set</i></b>.</p>
+description : |
+    <hr>
+    <p>written for KBase by <a href="mailto:DCChivian@lbl.gov">Dylan Chivian</a></p>
+    <hr>
+    <p>
+    <h3>Description</h3>
+    <p>
+    <b>Extract Unpaired Reads and Synchronize Pairs</b> allows a user to split a Paired End Read Library or Set of Read Libraries into a Synchronized Paired End Library with unpaired forward and reverse reads extracted as separate Single End Libraries.
+    </p>

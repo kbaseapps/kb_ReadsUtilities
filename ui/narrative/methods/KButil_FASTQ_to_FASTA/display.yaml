@@ -1,10 +1,11 @@
 #
 # define display information
 #
-name: Convert FASTQ to FASTA - v1.0.0
+name: Convert FASTQ to FASTA - v1.0.1
 tooltip: |
     Turns SingleEndLibrary containing FASTQ into SingleEndLibrary containing FASTA
-screenshots: []
+screenshots:
+    - FASTQ_to_FASTA.png
 
 icon: kb-pink.png
 
@@ -40,5 +41,11 @@ parameters :
 
 
 description : |
-    <p>This method converts a FASTQ SingleEndLibrary to a FASTA SingleEndLibrary.</p>
-
+    <p>This App converts a FASTQ <b><i>Single End Library</i></b> to a FASTA <b><i>Single End Library</i></b>.</p>
+    <hr>
+    <p>written for KBase by <a href="mailto:DCChivian@lbl.gov">Dylan Chivian</a></p>
+    <hr>
+    <p>
+    <h3>Description</h3>
+    <b>Convert FASTQ to FASTA</b> removes the qual score lines from a FASTQ file and changes the header line indicator from '@' to '>' and resaves it as a new Single End Library object.
+    </p>
