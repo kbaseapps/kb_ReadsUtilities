@@ -49,7 +49,6 @@ parameters :
 
 description : |
     <p>This App allows the user to remove unpaired reads from a <b><i>Paired End Reads Library</i></b> or <b><i>Reads Set</i></b>.</p>
-description : |
     <hr>
     <p>written for KBase by <a href="mailto:DCChivian@lbl.gov">Dylan Chivian</a></p>
     <hr>

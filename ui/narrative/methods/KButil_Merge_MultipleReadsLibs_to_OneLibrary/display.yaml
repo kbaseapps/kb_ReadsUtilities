@@ -47,8 +47,7 @@ parameters :
             Name for the Output Reads Library
 
 description : |
-    <p>This App allows the user to merge multiple Reads Libraries into one reads Library.</p>
-description : |
+    <p>This App allows the user to merge multiple <b><i>Reads Libraries</i></b> into one <b><i>Reads Library</i></b>.</p>
     <hr>
     <p>written for KBase by <a href="mailto:DCChivian@lbl.gov">Dylan Chivian</a></p>
     <hr>
