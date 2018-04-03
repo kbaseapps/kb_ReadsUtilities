@@ -1,10 +1,11 @@
 #
 # define display information
 #
-name: Merge ReadsSet to One Library - v1.0.0
+name: Merge ReadsSet to One Library - v1.0.1
 tooltip: |
     Merge a ReadsSet with multiple libraries into One Library
-screenshots: []
+screenshots:
+    - Merge_ReadsSet_to_OneLibrary.png
 
 icon: kb-pink.png
 
@@ -46,4 +47,11 @@ parameters :
             Name for the Output Reads Library
 
 description : |
-    <p>This method allows the user to merge the Reads Libraries from a Reads Set into one Reads Library.</p>
+    <p>This App allows the user to merge the Reads Libraries from a Reads Set into one Reads Library.</p>
+    <hr>
+    <p>written for KBase by <a href="mailto:DCChivian@lbl.gov">Dylan Chivian</a></p>
+    <hr>
+    <p>
+    <h3>Description</h3>
+    <b>Merge ReadsSet to One Library</b> allows a user to combine the Reads Libraries from one Reads Set into one Reads Library (if merging a multiple Reads Sets into one Library, use <b>Merge Multiple ReadsLibs to One Library</b> App instead).  This can be necessary for certain Apps that cannot accept more than one reads library, such as for performing co-assemblies.  This App does not account for repeat IDs and will include all reads even if they are identical IDs or sequence.  Merged Reads Libraries must all be Paired End or Single End Libraries.
+    </p>

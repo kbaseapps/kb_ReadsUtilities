@@ -4,7 +4,8 @@
 name: Split Reads - v1.0.1
 tooltip: |
     Split a Reads Library into evenly sized Reads Libraries
-screenshots: []
+screenshots:
+    - Split_Reads.png 
 
 icon: kb-pink.png
 
@@ -52,4 +53,11 @@ parameters :
 
 
 description : |
-    <p>This method allows the user to split a Reads Library into evenly sized Reads Libraries, organized into a ReadsSet.</p>
+    <p>This App allows the user to split a <b><i>Reads Library</i></b> into evenly sized <b><i>Reads Libraries</i></b>, organized into a <b><i>Reads Set</i></b>.</p>
+    <hr>
+    <p>written for KBase by <a href="mailto:DCChivian@lbl.gov">Dylan Chivian</a></p>
+    <hr>
+    <p>
+    <h3>Description</h3>
+    <b>Split Reads</b> allows a user to split sequences from a larger Single End or Paired End Reads Library into two or more evenly-sized libraries (may be off by one sequence if the split number does not evenly divide the number of source reads).  The output sub-libraries will be organized into a corresponding Reads Set.
+    </p>
