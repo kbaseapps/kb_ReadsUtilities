@@ -1033,7 +1033,9 @@ class kb_ReadsUtilities:
         # divide reads_num by 2 if paired end library because only counting pairs
         #
         if input_reads_obj_type in PE_types and 'reads_num' in params['subsample_fraction'] and params['subsample_fraction']['reads_num'] != None and params['subsample_fraction']['reads_num'] != '':
-            params['subsample_fraction']['reads_num'] = int (params['subsample_fraction']['reads_num']/2.0 + 0.5)
+            orig_reads_num = params['subsample_fraction']['reads_num']
+            params['subsample_fraction']['reads_num'] = int (orig_reads_num/2.0 + 0.5)
+            self.log (console, "Adjusting reads num to number of pairs.  Input reads num: "+str(orig_reads_num)+" new pairs num: "+str(params['subsample_fraction']['reads_num']))
 
 
         # Download Reads
