@@ -297,7 +297,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_FASTQ_to_FASTA_01_SE():
     ##
-    @unittest.skip("skipped test_KButil_FASTQ_to_FASTA_01_SE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_KButil_FASTQ_to_FASTA_01_SE()")  # uncomment to skip
     def test_KButil_FASTQ_to_FASTA_01_SE (self):
         method = 'KButil_FASTQ_to_FASTA_01_SE'
         msg = "RUNNING: "+method+"()"
@@ -332,7 +332,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Split_Reads_01_PE():
     ##
-    @unittest.skip("skipped test_KButil_Split_Reads_01_PE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_KButil_Split_Reads_01_PE()")  # uncomment to skip
     def test_KButil_Split_Reads_01_PE (self):
         method = 'KButil_Split_Reads_01_PE'
         msg = "RUNNING: "+method+"()"
@@ -392,7 +392,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Split_Reads_01_SE():
     ##
-    @unittest.skip("skipped test_KButil_Split_Reads_01_SE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_KButil_Split_Reads_01_SE()")  # uncomment to skip
     def test_KButil_Split_Reads_01_SE (self):
         method = 'KButil_Split_Reads_01_SE'
         msg = "RUNNING: "+method+"()"
@@ -552,7 +552,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Merge_ReadsSet_to_OneLibrary_01_PE()
     ##
-    @unittest.skip("skipped test_KButil_Merge_ReadsSet_to_OneLibrary_01_PE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_KButil_Merge_ReadsSet_to_OneLibrary_01_PE()")  # uncomment to skip
     def test_KButil_Merge_ReadsSet_to_OneLibrary_01_PE (self):
         method = 'KButil_Merge_ReadsSet_to_OneLibrary_01_PE'
         msg = "RUNNING: "+method+"()"
@@ -588,7 +588,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Merge_ReadsSet_to_OneLibrary_01_SE()
     ##
-    @unittest.skip("skipped test_KButil_Merge_ReadsSet_to_OneLibrary_01_SE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_KButil_Merge_ReadsSet_to_OneLibrary_01_SE()")  # uncomment to skip
     def test_KButil_Merge_ReadsSet_to_OneLibrary_01_SE (self):
         method = 'KButil_Merge_ReadsSet_to_OneLibrary_01_SE'
         msg = "RUNNING: "+method+"()"
@@ -624,7 +624,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Merge_MultipleReadsLibs_to_OneLibrary_01_PE()
     ##
-    @unittest.skip("skipped test_Merge_MultipleReadsLibs_to_OneLibrary_01_PE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_Merge_MultipleReadsLibs_to_OneLibrary_01_PE()")  # uncomment to skip
     def test_KButil_Merge_MultipleReadsLibs_to_OneLibrary_01_PE (self):
         method = 'KButil_Merge_MultipleReadsLibs_to_OneLibrary_01_PE'
         msg = "RUNNING: "+method+"()"
@@ -668,7 +668,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Merge_MultipleReadsLibs_to_OneLibrary_01_SE()
     ##
-    @unittest.skip("skipped test_Merge_MultipleReadsLibs_to_OneLibrary_01_SE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_Merge_MultipleReadsLibs_to_OneLibrary_01_SE()")  # uncomment to skip
     def test_KButil_Merge_MultipleReadsLibs_to_OneLibrary_01_SE (self):
         method = 'KButil_Merge_MultipleReadsLibs_to_OneLibrary_01_SE'
         msg = "RUNNING: "+method+"()"
@@ -712,7 +712,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs_01_PE():
     ##
-    @unittest.skip("skipped test_KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs_01_PE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs_01_PE()")  # uncomment to skip
     def test_KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs_01_PE (self):
         method = 'KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs_01_PE'
         msg = "RUNNING: "+method+"()"
@@ -755,7 +755,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Translate_ReadsLibs_QualScores_01_PE()
     ##
-    @unittest.skip("skipped test_Translate_ReadsLibs_QualScores_01_PE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_Translate_ReadsLibs_QualScores_01_PE()")  # uncomment to skip
     def test_KButil_Translate_ReadsLibs_QualScores_01_PE (self):
         method = 'KButil_Translate_ReadsLibs_QualScores_01_PE'
         msg = "RUNNING: "+method+"()"
@@ -796,7 +796,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Translate_ReadsLibs_QualScores_01_SE()
     ##
-    @unittest.skip("skipped test_Translate_ReadsLibs_QualScores_01_SE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_Translate_ReadsLibs_QualScores_01_SE()")  # uncomment to skip
     def test_KButil_Translate_ReadsLibs_QualScores_01_SE (self):
         method = 'KButil_Translate_ReadsLibs_QualScores_01_SE'
         msg = "RUNNING: "+method+"()"
@@ -837,7 +837,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_AddInsertLen_to_ReadsLibs_01_PE()
     ##
-    @unittest.skip("skipped test_KButil_AddInsertLen_to_ReadsLibs_01_PE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_KButil_AddInsertLen_to_ReadsLibs_01_PE()")  # uncomment to skip
     def test_KButil_AddInsertLen_to_ReadsLibs_0_PE1 (self):
         method = 'KButil_AddInsertLen_to_ReadsLibs_01_PE'
         msg = "RUNNING: "+method+"()"
