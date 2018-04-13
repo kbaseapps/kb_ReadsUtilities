@@ -1,4 +1,4 @@
-FROM kbase/kbase:sdkbase.latest
+FROM kbase/kbase:sdkbase2.latest
 MAINTAINER KBase Developer
 # -----------------------------------------
 # In this section, you can install any system dependencies required
@@ -7,14 +7,14 @@ MAINTAINER KBase Developer
 # installation scripts.
 
 
-# Update certs
-RUN apt-get update
-RUN apt-get install ca-certificates
+## Update certs
+#RUN apt-get update
+#RUN apt-get install ca-certificates
 
-# Fix Python SSL warnings for python < 2.7.9 (system python on Trusty is 2.7.6)
-# https://github.com/pypa/pip/issues/4098
-RUN pip install pip==8.1.2
-RUN pip install --disable-pip-version-check requests requests_toolbelt pyopenssl --upgrade
+## Fix Python SSL warnings for python < 2.7.9 (system python on Trusty is 2.7.6)
+## https://github.com/pypa/pip/issues/4098
+#RUN pip install pip==8.1.2
+#RUN pip install --disable-pip-version-check requests requests_toolbelt pyopenssl --upgrade
 
 ## update security libraries in the base image (deprecated approach)
 #RUN pip install cffi --upgrade \

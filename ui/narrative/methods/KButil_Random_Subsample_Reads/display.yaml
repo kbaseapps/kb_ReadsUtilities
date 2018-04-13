@@ -1,7 +1,7 @@
 #
 # define display information
 #
-name: Randomly Subsample Reads - v1.0.1
+name: Randomly Subsample Reads - v1.0.2
 tooltip: |
     Split a Reads Library into a set of randomly subsampled Reads Libraries
 screenshots:

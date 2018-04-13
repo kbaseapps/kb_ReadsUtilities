@@ -53,9 +53,9 @@ class kb_ReadsUtilities:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "1.0.1"
+    VERSION = "1.0.2"
     GIT_URL = "https://github.com/kbaseapps/kb_ReadsUtilities"
-    GIT_COMMIT_HASH = "0b8cc5b91985e83d416f2e71ac85e936f8ebca44"
+    GIT_COMMIT_HASH = "7caaaa1fd572e5d774a5aaa194150cb9f3fef2f5"
 
     #BEGIN_CLASS_HEADER
     workspaceURL = None
@@ -1032,8 +1032,8 @@ class kb_ReadsUtilities:
 
         # divide reads_num by 2 if paired end library because only counting pairs
         #
-        if input_reads_obj_type in PE_types:
-            reads_num = int (reads_num/2.0 + 0.5)
+        if input_reads_obj_type in PE_types and 'reads_num' in params['subsample_fraction'] and params['subsample_fraction']['reads_num'] != None and params['subsample_fraction']['reads_num'] != '':
+            params['subsample_fraction']['reads_num'] = int (params['subsample_fraction']['reads_num']/2.0 + 0.5)
 
 
         # Download Reads
