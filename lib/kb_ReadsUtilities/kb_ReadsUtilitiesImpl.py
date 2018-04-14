@@ -53,9 +53,9 @@ class kb_ReadsUtilities:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "1.0.1"
+    VERSION = "1.0.2"
     GIT_URL = "https://github.com/kbaseapps/kb_ReadsUtilities"
-    GIT_COMMIT_HASH = "0b8cc5b91985e83d416f2e71ac85e936f8ebca44"
+    GIT_COMMIT_HASH = "7caaaa1fd572e5d774a5aaa194150cb9f3fef2f5"
 
     #BEGIN_CLASS_HEADER
     workspaceURL = None
@@ -1032,8 +1032,10 @@ class kb_ReadsUtilities:
 
         # divide reads_num by 2 if paired end library because only counting pairs
         #
-        if input_reads_obj_type in PE_types:
-            reads_num = int (reads_num/2.0 + 0.5)
+        if input_reads_obj_type in PE_types and 'reads_num' in params['subsample_fraction'] and params['subsample_fraction']['reads_num'] != None and params['subsample_fraction']['reads_num'] != '':
+            orig_reads_num = params['subsample_fraction']['reads_num']
+            params['subsample_fraction']['reads_num'] = int (orig_reads_num/2.0 + 0.5)
+            self.log (console, "Adjusting reads num to number of pairs.  Input reads num: "+str(orig_reads_num)+" new pairs num: "+str(params['subsample_fraction']['reads_num']))
 
 
         # Download Reads
@@ -2854,7 +2856,7 @@ class kb_ReadsUtilities:
             except Exception as e:
                 raise ValueError('Unable to get read library object from workspace: (' + str(reads_ref) +')' + str(e))
             
-            acceptable_types = ["KBaseSets.ReadsSet", "KBaseFile.PairedEndLibrary"]
+            acceptable_types = ["KBaseSets.ReadsSet", "KBaseFile.PairedEndLibrary", "KBaseFile.SingleEndLibrary"]
             if input_reads_obj_type not in acceptable_types:
                 raise ValueError ("Input reads of type: '"+input_reads_obj_type+"'.  Must be one of "+", ".join(acceptable_types))
             
@@ -2930,7 +2932,8 @@ class kb_ReadsUtilities:
             read_buf_size  = 65536
             write_buf_size = 65536
 
-            qual33_fwd_path = this_input_fwd_path + '.qual33'
+            #qual33_fwd_path = this_input_fwd_path + '.qual33'
+            qual33_fwd_path = re.sub ('.fastq$', '-q33.fastq', this_input_fwd_path)
             qual33_fwd_handle = open (qual33_fwd_path, 'w', write_buf_size)
 
             input_is_already_phred33 = False
@@ -2974,7 +2977,8 @@ class kb_ReadsUtilities:
                 
                 self.log (console, "TRANSLATING REV FASTQ FILE FOR ReadsSet member: "+str(this_input_reads_ref))
 
-                qual33_rev_path = this_input_rev_path + '.qual33'
+                #qual33_rev_path = this_input_rev_path + '.qual33'
+                qual33_rev_path = re.sub ('.fastq$', '-q33.fastq', this_input_rev_path)
                 qual33_rev_handle = open (qual33_rev_path, 'w', write_buf_size)
                 this_input_path = this_input_rev_path
 

@@ -1,7 +1,7 @@
 #
 # define display information
 #
-name: Randomly Subsample Reads - v1.0.1
+name: Randomly Subsample Reads - v1.0.2
 tooltip: |
     Split a Reads Library into a set of randomly subsampled Reads Libraries
 screenshots:
@@ -80,5 +80,5 @@ description : |
     <hr>
     <p>
     <h3>Description</h3>
-    <b>Randomly Subsample Reads</b> allows a user to skim sequences from a larger Single End or Paired End Reads Library into one or more subsample libraries.  if the number of reads in each subsample library is used to specific the split of a Paired End Library, then the resulting libraries will contain half that number of pairs.  These subsample libraries will not contain duplicates (with respect to the source reads, unless the source reads already had duplicates).  The number of output reads subsample libraries can be specified, and either the percentage of reads from the source to place in each subsample library or the raw count of reads to place in each subsample library.  Therefore the number of subsample libraries X the percentage per library must be <= 100% or the number of libraries X the raw count must be <= number of reads in the source library.
+    <b>Randomly Subsample Reads</b> allows a user to skim sequences from a larger Single End or Paired End Reads Library into one or more subsample libraries.  If the number of reads in each subsample library is used to specific the split of a Paired End Library, then the resulting libraries will contain half that number of pairs.  These subsample libraries will not contain duplicates (with respect to the source reads, unless the source reads already had duplicates).  The number of output reads subsample libraries can be specified, and either the percentage of reads from the source to place in each subsample library or the raw count of reads to place in each subsample library.  Therefore the number of subsample libraries X the percentage per library must be <= 100% or the number of libraries X the raw count must be <= number of reads in the source library.
     </p>
