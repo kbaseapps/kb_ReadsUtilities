@@ -434,7 +434,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
         # check the output
         output_name = base_output_name+'-0'
         output_type = 'KBaseFile.SingleEndLibrary'
-        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':pe_lib_info[7] + '/' + output_name}]})
+        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':se_lib_info[7] + '/' + output_name}]})
         self.assertEqual(len(info_list),1)
         readsLib_info = info_list[0]
         self.assertEqual(readsLib_info[1],output_name)
@@ -442,7 +442,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
         output_name = base_output_name+'-'+str(split_num-1)
         output_type = 'KBaseFile.SingleEndLibrary'
-        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':pe_lib_info[7] + '/' + output_name}]})
+        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':se_lib_info[7] + '/' + output_name}]})
         self.assertEqual(len(info_list),1)
         readsLib_info = info_list[0]
         self.assertEqual(readsLib_info[1],output_name)
@@ -701,7 +701,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
         # check the output
         output_name = base_output_name
-        output_type = 'KBaseFile.EndLibrary'
+        output_type = 'KBaseFile.SingleEndLibrary'
         info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':self.getWsName() + '/' + output_name}]})
         self.assertEqual(len(info_list),1)
         readsLib_info = info_list[0]
@@ -808,7 +808,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
         lib_obj_names = []
         input_refs = []
         for lib_i,lib_basename in enumerate(lib_basenames):
-            se_lib_info = self.SingleEndLibInfo(lib_basename+'-q64_5recs', lib_i=lib_i)
+            se_lib_info = self.getSingleEndLibInfo(lib_basename+'-q64_5recs', lib_i=lib_i)
             pprint(se_lib_info)
             lib_obj_names.append(str(se_lib_info[1]))
             input_refs.append(str(se_lib_info[6])+'/'+str(se_lib_info[0])+'/'+str(se_lib_info[4]))

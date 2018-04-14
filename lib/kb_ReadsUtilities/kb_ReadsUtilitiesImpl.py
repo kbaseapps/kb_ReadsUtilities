@@ -2856,7 +2856,7 @@ class kb_ReadsUtilities:
             except Exception as e:
                 raise ValueError('Unable to get read library object from workspace: (' + str(reads_ref) +')' + str(e))
             
-            acceptable_types = ["KBaseSets.ReadsSet", "KBaseFile.PairedEndLibrary"]
+            acceptable_types = ["KBaseSets.ReadsSet", "KBaseFile.PairedEndLibrary", "KBaseFile.SingleEndLibrary"]
             if input_reads_obj_type not in acceptable_types:
                 raise ValueError ("Input reads of type: '"+input_reads_obj_type+"'.  Must be one of "+", ".join(acceptable_types))
             
@@ -2932,7 +2932,8 @@ class kb_ReadsUtilities:
             read_buf_size  = 65536
             write_buf_size = 65536
 
-            qual33_fwd_path = this_input_fwd_path + '.qual33'
+            #qual33_fwd_path = this_input_fwd_path + '.qual33'
+            qual33_fwd_path = re.sub ('.fastq$', '-q33.fastq', this_input_fwd_path)
             qual33_fwd_handle = open (qual33_fwd_path, 'w', write_buf_size)
 
             input_is_already_phred33 = False
@@ -2976,7 +2977,8 @@ class kb_ReadsUtilities:
                 
                 self.log (console, "TRANSLATING REV FASTQ FILE FOR ReadsSet member: "+str(this_input_reads_ref))
 
-                qual33_rev_path = this_input_rev_path + '.qual33'
+                #qual33_rev_path = this_input_rev_path + '.qual33'
+                qual33_rev_path = re.sub ('.fastq$', '-q33.fastq', this_input_rev_path)
                 qual33_rev_handle = open (qual33_rev_path, 'w', write_buf_size)
                 this_input_path = this_input_rev_path
 
