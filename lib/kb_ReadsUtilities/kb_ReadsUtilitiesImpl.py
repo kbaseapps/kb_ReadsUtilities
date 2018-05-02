@@ -55,7 +55,7 @@ class kb_ReadsUtilities:
     ######################################### noqa
     VERSION = "1.0.2"
     GIT_URL = "https://github.com/kbaseapps/kb_ReadsUtilities"
-    GIT_COMMIT_HASH = "7caaaa1fd572e5d774a5aaa194150cb9f3fef2f5"
+    GIT_COMMIT_HASH = "b49e8181158c342d32178263a778a0fe9a8f7cd2"
 
     #BEGIN_CLASS_HEADER
     workspaceURL = None
