@@ -1,6 +1,8 @@
 ### Version 1.0.2
 __Changes__
 - made Paired End Library use half the number of reads for pairs in random_subsample()
+- updated base image to sdkbase2 in Dockerfile
+- copy edits to docs pages
 
 ### Version 1.0.1
 __Changes__

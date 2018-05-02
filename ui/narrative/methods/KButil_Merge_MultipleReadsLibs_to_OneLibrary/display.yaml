@@ -32,7 +32,7 @@ parameters :
         ui-name : |
             Description
         short-hint : |
-            Describe Purpose or Contents of Output ReadsLibrary
+            Describe Purpose or Contents of Output Reads Library
         placeholder: |
             Enter Description
     input_refs:
@@ -42,7 +42,7 @@ parameters :
             Reads Lib Names here (SingleEndLibrary or PairedEndLibrary, but not both)
     output_name:
         ui-name : |
-            Output reads lib name
+            Output reads library
         short-hint : |
             Name for the Output Reads Library
 
@@ -53,5 +53,5 @@ description : |
     <hr>
     <p>
     <h3>Description</h3>
-    <b>Merge Multiple ReadsLibs to One ReadsLib</b> allows a user to combine reads sets and/or reads libraries into a single library (if merging a single Reads Set into one Library, use <b>Merge ReadsSet to One Library</b> App instead).  This can be necessary for certain Apps that cannot accept more than one reads library, such as for performing co-assemblies.  This App does not account for repeat IDs and will include all reads even if they are identical IDs or sequence.  Merged Reads Libraries must all be Paired End or Single End Libraries.
+    <b>Merge Multiple ReadsLibs to One ReadsLib</b> allows a user to combine multiple reads sets and/or reads libraries into a single library (if merging a single Reads Set into one Library, use <b>Merge ReadsSet to One Library</b> App instead).  This can be necessary for certain Apps that cannot accept more than one reads library, such as for performing co-assemblies.  This App does not account for repeat IDs and will include all reads even if they are identical IDs or sequence.  Input reads libraries must all be <b></i>Paired End Libraries</i></b> or <b><i>Single End Libraries</i></b> to allow for merging into one output library.
     </p>
