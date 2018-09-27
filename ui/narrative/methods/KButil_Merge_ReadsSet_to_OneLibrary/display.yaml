@@ -55,3 +55,10 @@ description : |
     <h3>Description</h3>
     <b>Merge ReadsSet to One Library</b> allows a user to combine the Reads Libraries from one Reads Set into one Reads Library (if merging a multiple Reads Sets into one Library, use <b>Merge Multiple ReadsLibs to One Library</b> App instead).  This can be necessary for certain Apps that cannot accept more than one reads library, such as for performing co-assemblies.  This App does not account for repeat IDs and will include all reads even if they are identical IDs or sequence.  The members of the <b><i>Reads Set</i></b> must all be either <b><i>Paired End Libraries</i></b> or <b><i>Single End Libraries</i></b> to allow for merging into one output library.
     </p>
+
+
+publications :
+    -
+        display-text: |
+            Arkin AP, Cottingham RW, Henry CS, Harris NL, Stevens RL, Maslov S, et al. KBase: The United States Department of Energy Systems Biology Knowledgebase. Nature Biotechnology. 2018;36: 566. doi: 10.1038/nbt.4163
+        link: https://www.nature.com/articles/nbt.4163

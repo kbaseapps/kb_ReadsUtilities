@@ -46,3 +46,10 @@ description : |
     <p>
     Phred 33 is used for Sanger, 454, SRA, Illumina >= 1.8, so these files do not need to be converted to phred33.  Illumina <= 1.7 is phred64 and often needs to be converted to phred 33 to be processed correctly by modern bioinformatics tools.
     </p>
+
+
+publications :
+    -
+        display-text: |
+            Arkin AP, Cottingham RW, Henry CS, Harris NL, Stevens RL, Maslov S, et al. KBase: The United States Department of Energy Systems Biology Knowledgebase. Nature Biotechnology. 2018;36: 566. doi: 10.1038/nbt.4163
+        link: https://www.nature.com/articles/nbt.4163

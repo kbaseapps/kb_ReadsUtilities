@@ -5,7 +5,7 @@ name: Split Reads - v1.0.1
 tooltip: |
     Split a Reads Library into evenly sized Reads Libraries
 screenshots:
-    - Split_Reads.png 
+    - Split_Reads.png
 
 icon: kb-pink.png
 
@@ -61,3 +61,10 @@ description : |
     <h3>Description</h3>
     <b>Split Reads</b> allows a user to split sequences from a larger Single End or Paired End Reads Library into two or more evenly-sized libraries (may be off by one sequence if the split number does not evenly divide the number of source reads).  Read records are taken one-at-a-time in turn, so the resulting split libraries are taken evenly from the whole input library, not as uninterrupted chunks from the source.  The output split libraries will be organized into a corresponding ReadsSet object, named by the user.
     </p>
+
+
+publications :
+    -
+        display-text: |
+            Arkin AP, Cottingham RW, Henry CS, Harris NL, Stevens RL, Maslov S, et al. KBase: The United States Department of Energy Systems Biology Knowledgebase. Nature Biotechnology. 2018;36: 566. doi: 10.1038/nbt.4163
+        link: https://www.nature.com/articles/nbt.4163
