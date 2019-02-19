@@ -82,3 +82,10 @@ description : |
     <h3>Description</h3>
     <b>Randomly Subsample Reads</b> allows a user to skim sequences from a larger Single End or Paired End Reads Library into one or more subsample libraries.  If the number of reads in each subsample library is used to specify the split of a Paired End Library, then the resulting libraries will contain half that number of pairs (e.g., selecting 1000 reads will create 500 pairs of reads).  These subsample libraries will not contain duplicates (with respect to the source reads, unless the source reads already had duplicates).  The number of sample libraries can be specified either by percentage of reads or by raw count and the combined samples cannot contain more than the total number of reads present in the source library.
     </p>
+
+
+publications :
+    -
+        display-text: |
+            Arkin AP, Cottingham RW, Henry CS, Harris NL, Stevens RL, Maslov S, et al. KBase: The United States Department of Energy Systems Biology Knowledgebase. Nature Biotechnology. 2018;36: 566. doi: 10.1038/nbt.4163
+        link: https://www.nature.com/articles/nbt.4163

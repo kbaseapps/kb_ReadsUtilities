@@ -53,3 +53,9 @@ description : |
     <h3>Description</h3>
     <b>Add Insert Length to Reads Libraries</b> allows a user to fill in missing Insert Length and Standard Deviation values to Paired End Libraries for those Apps, such as assemblers, that take advantage or require such information.  Insert Length includes the length of each read as well as the gap inbetween (e.g., 2x150bp reads + 150bp gap = 450bp insert length).  The input object itself is modified and the version of the object is increased by one.
     </p>
+
+publications :
+    -
+        display-text: |
+            Arkin AP, Cottingham RW, Henry CS, Harris NL, Stevens RL, Maslov S, et al. KBase: The United States Department of Energy Systems Biology Knowledgebase. Nature Biotechnology. 2018;36: 566. doi: 10.1038/nbt.4163
+        link: https://www.nature.com/articles/nbt.4163

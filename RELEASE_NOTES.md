@@ -1,3 +1,7 @@
+### Version 1.0.3
+__Changes__
+- added KBase paper citation in PLOS format
+
 ### Version 1.0.2
 __Changes__
 - made Paired End Library use half the number of reads for pairs in random_subsample()
@@ -14,4 +18,3 @@ __Changes__
 
 ### Version 0.0.1
 - Initial dev version
-
