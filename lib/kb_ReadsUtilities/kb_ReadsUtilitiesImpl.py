@@ -78,14 +78,6 @@ class kb_ReadsUtilities:
         print(message)
         sys.stdout.flush()
 
-    # target is a list for collecting log messages
-    def log(self, target, message):
-        # we should do something better here...
-        if target is not None:
-            target.append(message)
-        print(message)
-        sys.stdout.flush()
-
     def get_single_end_read_library(self, ws_data, ws_info, forward):
         pass
 
