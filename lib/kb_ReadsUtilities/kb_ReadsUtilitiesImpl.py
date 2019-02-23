@@ -26,6 +26,7 @@ from biokbase.AbstractHandle.Client import AbstractHandle as HandleService
 
 # SDK Utils
 from installed_clients.ReadsUtilsClient import ReadsUtils
+from installed_clients.GenomeFileUtilClient import GenomeFileUtil
 from installed_clients.SetAPIServiceClient import SetAPI
 from installed_clients.KBaseReportClient import KBaseReport
 
@@ -3344,7 +3345,6 @@ class kb_ReadsUtilities:
         report = ''
         
         token = ctx['token']
-        wsClient = workspaceService(self.workspaceURL, token=token)
         headers = {'Authorization': 'OAuth '+token}
         env = os.environ.copy()
         env['KB_AUTH_TOKEN'] = token
@@ -3352,6 +3352,25 @@ class kb_ReadsUtilities:
         #SERVICE_VER = 'dev'  # DEBUG
         SERVICE_VER = 'release'
 
+        # Init clients
+        try:
+            wsClient = workspaceService(self.workspaceURL, token=token)            
+            [OBJID_I, NAME_I, TYPE_I, SAVE_DATE_I, VERSION_I, SAVED_BY_I, WSID_I, WORKSPACE_I, CHSUM_I, SIZE_I, META_I] = range(11)  # object_info tuple
+        except Exception as e:
+            raise ValueError('Unable to get Workspace Client' +"\n" + str(e))
+        try:
+            readsUtils_Client = ReadsUtils (url=self.callbackURL, token=token)  # SDK local
+        except Exception as e:
+            raise ValueError('Unable to get ReadsUtils Client' +"\n" + str(e))
+        try:
+            setAPI_Client = SetAPI (url=self.serviceWizardURL, token=token)  # for dynamic service
+        except Exception as e:
+            raise ValueError('Unable to get SetAPI Client' +"\n" + str(e))
+        try:
+            reportClient = KBaseReport (self.callbackURL, token=token, service_ver=SERVICE_VER)
+        except Exception as e:
+            raise ValueError('Unable to get report Client' +"\n" + str(e))
+        
         # init randomizer
         if 'seed' in params and params['seed'] != None:
             random.seed(params['seed'])
@@ -3412,9 +3431,6 @@ class kb_ReadsUtilities:
         # Determine whether read library is of correct type
         #
         try:
-            # object_info tuple
-            [OBJID_I, NAME_I, TYPE_I, SAVE_DATE_I, VERSION_I, SAVED_BY_I, WSID_I, WORKSPACE_I, CHSUM_I, SIZE_I, META_I] = range(11)
-            
             input_reads_ref = params['input_reads_ref']
             input_reads_obj_info = wsClient.get_object_info_new ({'objects':[{'ref':input_reads_ref}]})[0]
             input_reads_obj_name = input_reads_obj_info[NAME_I]
@@ -3443,10 +3459,6 @@ class kb_ReadsUtilities:
         # Download Reads
         #
         self.log (console, "DOWNLOADING READS")  # DEBUG
-        try:
-            readsUtils_Client = ReadsUtils (url=self.callbackURL, token=ctx['token'])  # SDK local
-        except Exception as e:
-            raise ValueError('Unable to get ReadsUtils Client' +"\n" + str(e))
         try:
             readsLibrary = readsUtils_Client.download_reads ({'read_libraries': [input_reads_ref],
                                                              'interleaved': 'false'
@@ -3862,7 +3874,7 @@ class kb_ReadsUtilities:
                 else:
                     output_obj_name = params['output_name']+'-'+str(lib_i)
                     self.log(console, 'Uploading single end reads: '+output_obj_name)
-                    paired_obj_refs.append( readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
+                    paired_obj_refs.append (readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                               'name': output_obj_name,
                                                                               # remove sequencing_tech when source_reads_ref is working
                                                                               #'sequencing_tech': sequencing_tech,
@@ -3890,7 +3902,6 @@ class kb_ReadsUtilities:
                                 'items': items
                                 }
         output_readsSet_name = str(params['output_name'])
-        setAPI_Client = SetAPI (url=self.serviceWizardURL, token=ctx['token'])  # for dynamic service
         readsSet_ref = setAPI_Client.save_reads_set_v1 ({'workspace_name': params['workspace_name'],
                                                          'output_object_name': output_readsSet_name,
                                                          'data': output_readsSet_obj
@@ -3909,8 +3920,7 @@ class kb_ReadsUtilities:
 
         # save report object
         #
-        report = KBaseReport(self.callbackURL, token=ctx['token'], service_ver=SERVICE_VER)
-        report_info = report.create({'report':reportObj, 'workspace_name':params['workspace_name']})
+        report_info = reportClient.create({'report':reportObj, 'workspace_name':params['workspace_name']})
 
         returnVal = { 'report_name': report_info['name'], 'report_ref': report_info['ref'] }
         #END KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads
