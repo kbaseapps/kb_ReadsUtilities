@@ -1,0 +1,249 @@
+{
+    "ver": "1.2.0",
+    "authors": [
+        "dylan"
+    ],
+    "contact": "http://kbase.us/contact-us/",
+    "visible": true,
+    "categories": ["active","util","reads"],
+    "widgets": {
+        "input": null,
+        "output": "kbaseReportView"
+    },
+    "parameters": [ 
+        {
+            "id": "desc",
+            "optional": false,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "" ],
+            "field_type": "text",
+            "text_options": {
+		"is_output_name": false
+            }
+        },
+        {
+            "id": "input_genomeSet_ref",
+            "optional": false,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "" ],
+            "field_type": "text",
+            "text_options": {
+                "valid_ws_types": [ "KBaseSearch.GenomeSet","KBaseSets.GenomeSet" ]
+            }
+        },
+        {
+            "id": "genome_abundances",
+            "optional": true,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "" ],
+            "field_type": "textarea",
+            "textarea_options": {
+                "n_rows": 10
+            }
+        },
+        {
+            "id": "input_reads_ref",
+            "optional": false,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "" ],
+            "field_type": "text",
+            "text_options": {
+                "valid_ws_types": [ "KBaseFile.SingleEndLibrary","KBaseFile.PairedEndLibrary" ]
+            }
+        },
+        {
+            "id": "output_name",
+            "optional": false,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "" ],
+            "field_type": "text",
+            "text_options": {
+                "valid_ws_types": [ "KBaseSets.ReadsSet" ],
+		"is_output_name": true
+            }
+        },
+        {
+            "id": "split_num",
+            "optional": false,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "1" ],
+            "field_type": "text",
+            "text_options": {
+		"validate_as": "int"
+            }
+        },
+        {
+            "id": "reads_num",
+            "optional": true,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "10000" ],
+            "field_type": "text",
+            "text_options": {
+		"validate_as": "int"
+            }
+        },
+        {
+            "id": "reads_perc",
+            "optional": true,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "10" ],
+            "field_type": "text",
+            "text_options": {
+		"validate_as": "float"
+            }
+        },
+        {
+            "id": "genome_length_bias",
+            "optional": true,
+            "advanced": true,
+            "allow_multiple": false,
+            "default_values": [ "1" ],
+            "field_type": "dropdown",
+            "dropdown_options": {
+		"options": [
+		    {
+			"value": "0",
+			"display": "length bias OFF",
+			"id": "genome_lenth_bias-OFF",
+			"ui_name": "genome_lenth_bias-OFF"
+		    },
+		    {
+			"value": "1",
+			"display": "length bias ON",
+			"id": "genome_lenth_bias-ON",
+			"ui_name": "genome_lenth_bias-ON"
+		    }
+		]
+            }
+        },
+        {
+            "id": "pe_insert_len",
+            "optional": true,
+            "advanced": true,
+            "allow_multiple": false,
+            "default_values": [ "450" ],
+            "field_type": "dropdown",
+            "text_options": {
+		"validate_as": "int"
+            }
+        },
+        {
+            "id": "pe_orientation",
+            "optional": true,
+            "advanced": true,
+            "allow_multiple": false,
+            "default_values": [ "IN-IN" ],
+            "field_type": "dropdown",
+            "dropdown_options": {
+		"options": [
+		    {
+			"value": "IN-IN",
+			"display": "fwd:IN(+) + rev:IN(-) (e.g. Illumina,almost everything)",
+			"id": "pe_orientation_IN-IN",
+			"ui_name": "pe_orientation_IN-IN"
+		    }
+		]
+            }
+        },
+        {
+            "id": "seed",
+            "optional": true,
+            "advanced": true,
+            "allow_multiple": false,
+            "default_values": [ "1" ],
+            "field_type": "text",
+            "text_options": {
+		"validate_as": "int"
+            }
+        }
+    ],
+
+    "parameter-groups": [
+     	{
+	    "id": "subsample_fraction",
+            "parameters": ["split_num", "reads_num", "reads_perc"],
+            "optional": false,
+            "allow_multiple": false,
+            "with_border": true
+        }
+    ],
+
+    "behavior": {
+        "service-mapping": {
+            "url": "",
+            "name": "kb_ReadsUtilities",
+            "method": "KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads",
+            "input_mapping": [
+                {
+                    "narrative_system_variable": "workspace",
+                    "target_property": "workspace_name"
+                },
+                {
+                    "input_parameter": "desc",
+                    "target_property": "desc"
+                },
+                {
+                    "input_parameter": "input_reads_ref",
+                    "target_property": "input_reads_ref",
+		    "target_type_transform": "resolved-ref"
+                },
+                {
+                    "input_parameter": "input_genomeSet_ref",
+                    "target_property": "input_genomeSet_ref",
+		    "target_type_transform": "resolved-ref"
+                },
+                {
+                    "input_parameter": "genome_abundances",
+                    "target_property": "genome_abundances"
+                },
+                {
+                    "input_parameter": "genome_length_bias",
+                    "target_property": "genome_length_bias"
+                },
+                {
+                    "input_parameter": "pe_insert_len",
+                    "target_property": "pe_insert_len"
+                },
+                {
+                    "input_parameter": "pe_orientation",
+                    "target_property": "pe_orientation"
+                },
+                {
+                    "input_parameter": "output_name",
+                    "target_property": "output_name"
+                },
+                {
+                    "input_parameter": "seed",
+                    "target_property": "seed"
+                },
+                {
+                    "input_parameter": "subsample_fraction",
+                    "target_property": "subsample_fraction"
+                }
+            ],
+            "output_mapping": [
+                {
+                    "narrative_system_variable": "workspace",
+                    "target_property": "workspace_name"
+                },
+                {
+                    "service_method_output_path": [0, "report_name"],
+                    "target_property": "report_name"
+                },
+                {
+                    "service_method_output_path": [0, "report_ref"],
+                    "target_property": "report_ref"
+                }
+            ]
+        }
+    },
+    "job_id_output_field": "docker"
+}

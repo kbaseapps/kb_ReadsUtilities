@@ -185,4 +185,32 @@ module kb_ReadsUtilities {
 
     funcdef KButil_AddInsertLen_to_ReadsLibs (KButil_AddInsertLen_to_ReadsLibs_Params params)  returns (KButil_AddInsertLen_to_ReadsLibs_Output) authentication required;
 
+
+    /* KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads()
+    **
+    **  Method for random subsampling of reads library combined with overlay of configured genomes
+    */
+    typedef structure {
+        workspace_name workspace_name;
+	data_obj_ref   input_genomeSet_ref;  /* GenomeSet */
+	string         genome_abundances;    /* Genome abundances */
+	data_obj_ref   input_reads_ref;      /* ReadsLibrary */
+        data_obj_name  output_name;          /* ReadsSet */
+	Fractionate_Options subsample_fraction;
+	/*bool           reads_uniq;*/  /* sampling without replacement */
+	bool           genome_length_bias;
+	string         desc;
+	int            pe_insert_len;
+        string         pe_orientation;
+	int            seed;
+    } KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_Params;
+
+    typedef structure {
+	data_obj_name report_name;
+	data_obj_ref  report_ref;
+    } KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_Output;
+
+    funcdef KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads (KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_Params params)  returns (KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_Output) authentication required;
+
+
 };

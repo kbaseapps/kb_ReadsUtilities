@@ -215,6 +215,38 @@ class kb_ReadsUtilities(object):
         return self._client.call_method('kb_ReadsUtilities.KButil_AddInsertLen_to_ReadsLibs',
                                         [params], self._service_ver, context)
 
+    def KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads(self, params, context=None):
+        """
+        :param params: instance of type
+           "KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_Params"
+           (KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads() ** **
+           Method for random subsampling of reads library combined with
+           overlay of configured genomes) -> structure: parameter
+           "workspace_name" of type "workspace_name" (** The workspace object
+           refs are of form: ** **    objects = ws.get_objects([{'ref':
+           params['workspace_id']+'/'+params['obj_name']}]) ** ** "ref" means
+           the entire name combining the workspace id and the object name **
+           "id" is a numerical identifier of the workspace or object, and
+           should just be used for workspace ** "name" is a string identifier
+           of a workspace or object.  This is received from Narrative.),
+           parameter "input_genomeSet_ref" of type "data_obj_ref", parameter
+           "genome_abundances" of String, parameter "input_reads_ref" of type
+           "data_obj_ref", parameter "output_name" of type "data_obj_name",
+           parameter "subsample_fraction" of type "Fractionate_Options"
+           (KButil_Random_Subsample_Reads() ** **  Method for random
+           subsampling of reads library) -> structure: parameter "split_num"
+           of Long, parameter "reads_num" of Long, parameter "reads_perc" of
+           Double, parameter "genome_length_bias" of type "bool", parameter
+           "desc" of String, parameter "pe_insert_len" of Long, parameter
+           "pe_orientation" of String, parameter "seed" of Long
+        :returns: instance of type
+           "KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_Output"
+           -> structure: parameter "report_name" of type "data_obj_name",
+           parameter "report_ref" of type "data_obj_ref"
+        """
+        return self._client.call_method('kb_ReadsUtilities.KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads',
+                                        [params], self._service_ver, context)
+
     def status(self, context=None):
         return self._client.call_method('kb_ReadsUtilities.status',
                                         [], self._service_ver, context)

@@ -52,9 +52,9 @@ class kb_ReadsUtilities:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "1.1.0"
-    GIT_URL = "https://github.com/kbaseapps/kb_ReadsUtilities"
-    GIT_COMMIT_HASH = "c19541fea4ac47b276b1158336c7b8468b4b66cc"
+    VERSION = "1.2.0"
+    GIT_URL = "https://github.com/dcchivian/kb_ReadsUtilities"
+    GIT_COMMIT_HASH = "96c0c578f3700a35d607d03ff702a2005fac8eea"
 
     #BEGIN_CLASS_HEADER
     workspaceURL = None
@@ -3301,6 +3301,623 @@ class kb_ReadsUtilities:
         # At some point might do deeper type checking...
         if not isinstance(returnVal, dict):
             raise ValueError('Method KButil_AddInsertLen_to_ReadsLibs return value ' +
+                             'returnVal is not type dict as required.')
+        # return the results
+        return [returnVal]
+
+    def KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads(self, ctx, params):
+        """
+        :param params: instance of type
+           "KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_Params"
+           (KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads() ** **
+           Method for random subsampling of reads library combined with
+           overlay of configured genomes) -> structure: parameter
+           "workspace_name" of type "workspace_name" (** The workspace object
+           refs are of form: ** **    objects = ws.get_objects([{'ref':
+           params['workspace_id']+'/'+params['obj_name']}]) ** ** "ref" means
+           the entire name combining the workspace id and the object name **
+           "id" is a numerical identifier of the workspace or object, and
+           should just be used for workspace ** "name" is a string identifier
+           of a workspace or object.  This is received from Narrative.),
+           parameter "input_genomeSet_ref" of type "data_obj_ref", parameter
+           "genome_abundances" of String, parameter "input_reads_ref" of type
+           "data_obj_ref", parameter "output_name" of type "data_obj_name",
+           parameter "subsample_fraction" of type "Fractionate_Options"
+           (KButil_Random_Subsample_Reads() ** **  Method for random
+           subsampling of reads library) -> structure: parameter "split_num"
+           of Long, parameter "reads_num" of Long, parameter "reads_perc" of
+           Double, parameter "genome_length_bias" of type "bool", parameter
+           "desc" of String, parameter "pe_insert_len" of Long, parameter
+           "pe_orientation" of String, parameter "seed" of Long
+        :returns: instance of type
+           "KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_Output"
+           -> structure: parameter "report_name" of type "data_obj_name",
+           parameter "report_ref" of type "data_obj_ref"
+        """
+        # ctx is the context object
+        # return variables are: returnVal
+        #BEGIN KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads
+        console = []
+        invalid_msgs = []
+        self.log(console, 'Running KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads() with parameters: ')
+        self.log(console, "\n"+pformat(params))
+        report = ''
+        
+        token = ctx['token']
+        wsClient = workspaceService(self.workspaceURL, token=token)
+        headers = {'Authorization': 'OAuth '+token}
+        env = os.environ.copy()
+        env['KB_AUTH_TOKEN'] = token
+        
+        #SERVICE_VER = 'dev'  # DEBUG
+        SERVICE_VER = 'release'
+
+        # init randomizer
+        if 'seed' in params and params['seed'] != None:
+            random.seed(params['seed'])
+        else:
+            random.seed()
+
+        # param checks
+        required_params = ['workspace_name',
+                           'input_genomeSet_ref', 
+                           'genome_abundances',
+                           'input_reads_ref', 
+                           'output_name'
+                           ]
+        for required_param in required_params:
+            if required_param not in params or params[required_param] == None:
+                raise ValueError ("Must define required param: '"+required_param+"'")
+
+#        # and param defaults
+#        defaults = { 'split_num': 10
+#                   }
+#        for arg in defaults.keys():
+#            if arg not in params or params[arg] == None or params[arg] == '':
+#                params[arg] = defaults[arg]
+
+        if 'subsample_fraction' not in params or params['subsample_fraction'] == None:
+            raise ValueError ("Missing subsample_fraction params")
+        if 'split_num' not in params['subsample_fraction'] or params['subsample_fraction']['split_num'] == None or params['subsample_fraction']['split_num'] < 0:
+            raise ValueError ("Missing split_num")
+
+        # use split_num to create reads_perc if neither reads_num or reads_perc defined
+        use_reads_num  = False
+        use_reads_perc = False
+        if ('reads_num' in params['subsample_fraction'] and params['subsample_fraction']['reads_num'] != None and params['subsample_fraction']['reads_num'] > 0):
+            self.log (console, "Ignoring reads_perc and just using reads_num: "+str(params['subsample_fraction']['reads_num']))
+            use_reads_num  = True
+            
+        elif ('reads_perc' in params['subsample_fraction'] and params['subsample_fraction']['reads_perc'] != None and params['subsample_fraction']['reads_perc'] > 0 and params['subsample_fraction']['reads_perc'] <= 100):
+            self.log (console, "Ignoring reads_num and just using reads_perc: "+str(params['subsample_fraction']['reads_perc']))
+            use_reads_perc = True
+
+        elif ('reads_num' not in params['subsample_fraction'] or params['subsample_fraction']['reads_num'] == None or params['subsample_fraction']['reads_num'] <= 0) \
+                and ('reads_perc' not in params['subsample_fraction'] or params['subsample_fraction']['reads_perc'] == None or params['subsample_fraction']['reads_perc'] <= 0):
+
+            params['subsample_fraction']['reads_perc'] = int(100.0 * 1.0/params['subsample_fraction']['split_num'])
+            use_reads_perc = True
+
+        else:
+            raise ValueError ("Badly configured subsample_fraction params")
+            
+
+        # load provenance
+        provenance = [{}]
+        if 'provenance' in ctx:
+            provenance = ctx['provenance']
+        provenance[0]['input_ws_objects']=[str(params['input_reads_ref'])]
+
+
+        # Determine whether read library is of correct type
+        #
+        try:
+            # object_info tuple
+            [OBJID_I, NAME_I, TYPE_I, SAVE_DATE_I, VERSION_I, SAVED_BY_I, WSID_I, WORKSPACE_I, CHSUM_I, SIZE_I, META_I] = range(11)
+            
+            input_reads_ref = params['input_reads_ref']
+            input_reads_obj_info = wsClient.get_object_info_new ({'objects':[{'ref':input_reads_ref}]})[0]
+            input_reads_obj_name = input_reads_obj_info[NAME_I]
+            input_reads_obj_type = input_reads_obj_info[TYPE_I]
+            input_reads_obj_type = re.sub ('-[0-9]+\.[0-9]+$', "", input_reads_obj_type)  # remove trailing version
+            #input_reads_obj_version = input_reads_obj_info[VERSION_I]  # this is object version, not type version
+
+        except Exception as e:
+            raise ValueError('Unable to get read library object info from workspace: (' + str(input_reads_ref) +')' + str(e))
+
+        PE_types = ["KBaseFile.PairedEndLibrary"]
+        SE_types = ["KBaseFile.SingleEndLibrary"]
+        acceptable_types = PE_types + SE_types
+        if input_reads_obj_type not in acceptable_types:
+            raise ValueError ("Input reads of type: '"+input_reads_obj_type+"'.  Must be one of "+", ".join(acceptable_types))
+
+
+        # divide reads_num by 2 if paired end library because only counting pairs
+        #
+        if input_reads_obj_type in PE_types and 'reads_num' in params['subsample_fraction'] and params['subsample_fraction']['reads_num'] != None and params['subsample_fraction']['reads_num'] != '':
+            orig_reads_num = params['subsample_fraction']['reads_num']
+            params['subsample_fraction']['reads_num'] = int (orig_reads_num/2.0 + 0.5)
+            self.log (console, "Adjusting reads num to number of pairs.  Input reads num: "+str(orig_reads_num)+" new pairs num: "+str(params['subsample_fraction']['reads_num']))
+
+
+        # Download Reads
+        #
+        self.log (console, "DOWNLOADING READS")  # DEBUG
+        try:
+            readsUtils_Client = ReadsUtils (url=self.callbackURL, token=ctx['token'])  # SDK local
+        except Exception as e:
+            raise ValueError('Unable to get ReadsUtils Client' +"\n" + str(e))
+        try:
+            readsLibrary = readsUtils_Client.download_reads ({'read_libraries': [input_reads_ref],
+                                                             'interleaved': 'false'
+                                                             })
+        except Exception as e:
+            raise ValueError('Unable to download read library sequences from workspace: (' + str(input_reads_ref) +")\n" + str(e))
+
+
+        # Paired End
+        #
+        if input_reads_obj_type == "KBaseFile.PairedEndLibrary":
+
+            # Download reads Libs to FASTQ files
+            input_fwd_file_path = readsLibrary['files'][input_reads_ref]['files']['fwd']
+            input_rev_file_path = readsLibrary['files'][input_reads_ref]['files']['rev']
+            sequencing_tech     = readsLibrary['files'][input_reads_ref]['sequencing_tech']
+
+            # file paths
+            input_fwd_path = re.sub ("\.fastq$", "", input_fwd_file_path)
+            input_fwd_path = re.sub ("\.FASTQ$", "", input_fwd_path)
+            input_rev_path = re.sub ("\.fastq$", "", input_rev_file_path)
+            input_rev_path = re.sub ("\.FASTQ$", "", input_rev_path)
+            output_fwd_paired_file_path_base   = input_fwd_path+"_fwd_paired"
+            output_rev_paired_file_path_base   = input_rev_path+"_rev_paired"
+            # set up for file io
+            total_paired_reads = 0
+            total_unpaired_fwd_reads = 0
+            total_unpaired_rev_reads = 0
+            total_paired_reads_by_set = []
+            fwd_ids = dict()
+            paired_ids = dict()
+            paired_ids_list = []
+            paired_lib_i = dict()
+            paired_buf_size = 100000
+            recs_beep_n = 1000000
+
+            # read fwd file to get fwd ids
+#            rec_cnt = 0  # DEBUG
+            self.log (console, "GETTING IDS")  # DEBUG
+            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+                rec_line_i = -1
+                for line in input_reads_file_handle:
+                    rec_line_i += 1
+                    if rec_line_i == 3:
+                        rec_line_i = -1
+                    elif rec_line_i == 0:
+                        if not line.startswith('@'):
+                            raise ValueError ("badly formatted rec line: '"+line+"'")
+                        read_id = line.rstrip('\n')
+                        read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
+                        fwd_ids[read_id] = True
+
+                        # DEBUG
+#                        if rec_cnt % 100 == 0:
+#                            self.log(console,"read_id: '"+str(read_id)+"'")
+#                        rec_cnt += 1 
+
+
+            # read reverse to determine paired
+            self.log (console, "DETERMINING PAIRED IDS")  # DEBUG
+            with open (input_rev_file_path, 'r', 0) as input_reads_file_handle:
+                rec_line_i = -1
+                for line in input_reads_file_handle:
+                    rec_line_i += 1
+                    if rec_line_i == 3:
+                        rec_line_i = -1
+                    elif rec_line_i == 0:
+                        if not line.startswith('@'):
+                            raise ValueError ("badly formatted rec line: '"+line+"'")
+                        read_id = line.rstrip('\n')
+                        read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
+                        if fwd_ids[read_id]:
+                            paired_ids[read_id] = True
+                            paired_ids_list.append(read_id)
+
+                        # DEBUG
+#                        if rec_cnt % 100 == 0:
+#                            self.log(console,"read_id: '"+str(read_id)+"'")
+#                        rec_cnt += 1 
+            total_paired_reads = len(paired_ids_list)
+            self.log (console, "TOTAL PAIRED READS CNT: "+str(total_paired_reads))  # DEBUG
+
+
+            # Determine sublibrary sizes
+            if use_reads_num:
+                reads_per_lib = params['subsample_fraction']['reads_num']
+                if reads_per_lib > total_paired_reads // params['subsample_fraction']['split_num']:
+                    raise ValueError ("must specify reads_num <= total_paired_reads_cnt / split_num.  You have reads_num:"+str(params['subsample_fraction']['reads_num'])+" > total_paired_reads_cnt:"+str(total_paired_reads)+" / split_num:"+str(params['subsample_fraction']['split_num'])+".  Instead try reads_num <= "+str(total_paired_reads // params['subsample_fraction']['split_num']))
+            elif use_reads_perc:
+                reads_per_lib = int ((params['subsample_fraction']['reads_perc']/100.0) * total_paired_reads)
+                if reads_per_lib > total_paired_reads // params['subsample_fraction']['split_num']:
+                    raise ValueError ("must specify reads_perc <= 1 / split_num.  You have reads_perc:"+str(params['subsample_fraction']['reads_perc'])+" > 1 / split_num:"+str(params['subsample_fraction']['split_num'])+".  Instead try reads_perc <= "+ str(int(100 * 1/params['subsample_fraction']['split_num'])))
+            else:
+                raise ValueError ("error in logic reads_num vs. reads_perc logic")
+
+            
+            # Determine random membership in each sublibrary
+            self.log (console, "GETTING RANDOM SUBSAMPLES")  # DEBUG
+
+            for i,read_id in enumerate(random.sample (paired_ids_list, reads_per_lib * params['subsample_fraction']['split_num'])):
+                lib_i = i % params['subsample_fraction']['split_num']
+                paired_lib_i[read_id] = lib_i
+
+
+            # split fwd paired
+            self.log (console, "WRITING FWD SPLIT PAIRED")  # DEBUG
+            paired_output_reads_file_handles = []
+            for lib_i in range(params['subsample_fraction']['split_num']):
+                paired_output_reads_file_handles.append(open (output_fwd_paired_file_path_base+"-"+str(lib_i)+".fastq", 'w', paired_buf_size))
+                total_paired_reads_by_set.append(0)
+
+            rec_buf = []
+            last_read_id = None
+            paired_cnt = 0
+            capture_type_paired = False
+
+            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+                rec_line_i = -1
+                for line in input_reads_file_handle:
+                    rec_line_i += 1
+                    if rec_line_i == 3:
+                        rec_line_i = -1
+                    elif rec_line_i == 0:
+                        if not line.startswith('@'):
+                            raise ValueError ("badly formatted rec line: '"+line+"'")
+                        if last_read_id != None:
+                            if capture_type_paired:
+                                lib_i = paired_lib_i[last_read_id]
+                                paired_output_reads_file_handles[lib_i].writelines(rec_buf)
+                                paired_cnt += 1
+                                total_paired_reads_by_set[lib_i] += 1
+                                if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
+                                    self.log(console,"\t"+str(paired_cnt)+" recs processed")
+                            else:
+                                #unpaired_fwd_buf.extend(rec_buf)
+                                pass
+                            rec_buf = []
+                        read_id = line.rstrip('\n')
+                        read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
+                        last_read_id = read_id
+                        try:
+                            found = paired_lib_i[read_id]
+                            capture_type_paired = True
+                        except:
+                            total_unpaired_fwd_reads += 1
+                            capture_type_paired = False
+                    rec_buf.append(line)
+                # last rec
+                if len(rec_buf) > 0:
+                    if capture_type_paired:
+                        lib_i = paired_lib_i[last_read_id]
+                        paired_output_reads_file_handles[lib_i].writelines(rec_buf)
+                        paired_cnt += 1
+                        if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
+                            self.log(console,"\t"+str(paired_cnt)+" recs processed")
+                    else:
+                        #unpaired_fwd_buf.extend(rec_buf)
+                        pass
+                    rec_buf = []
+
+            for output_handle in paired_output_reads_file_handles:
+                output_handle.close()
+
+            self.log(console,"\t"+str(paired_cnt)+" FWD recs processed")
+
+
+            # split rev paired
+            self.log (console, "WRITING REV SPLIT PAIRED")  # DEBUG
+            paired_output_reads_file_handles = []
+            for lib_i in range(params['subsample_fraction']['split_num']):
+                paired_output_reads_file_handles.append(open (output_rev_paired_file_path_base+"-"+str(lib_i)+".fastq", 'w', paired_buf_size))
+
+            rec_buf = []
+            last_read_id = None
+            paired_cnt = 0
+            capture_type_paired = False
+
+            with open (input_rev_file_path, 'r', 0) as input_reads_file_handle:
+                rec_line_i = -1
+                for line in input_reads_file_handle:
+                    rec_line_i += 1
+                    if rec_line_i == 3:
+                        rec_line_i = -1
+                    elif rec_line_i == 0:
+                        if not line.startswith('@'):
+                            raise ValueError ("badly formatted rec line: '"+line+"'")
+                        if last_read_id != None:
+                            if capture_type_paired:
+                                lib_i = paired_lib_i[last_read_id]
+                                paired_output_reads_file_handles[lib_i].writelines(rec_buf)
+                                paired_cnt += 1
+                                if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
+                                    self.log(console,"\t"+str(paired_cnt)+" recs processed")
+                            else:
+                                #unpaired_fwd_buf.extend(rec_buf)
+                                pass
+                            rec_buf = []
+                        read_id = line.rstrip('\n')
+                        read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
+                        last_read_id = read_id
+                        try:
+                            found = paired_lib_i[read_id]
+                            capture_type_paired = True
+                        except:
+                            total_unpaired_rev_reads += 1
+                            capture_type_paired = False
+                    rec_buf.append(line)
+                # last rec
+                if len(rec_buf) > 0:
+                    if capture_type_paired:
+                        lib_i = paired_lib_i[last_read_id]
+                        paired_output_reads_file_handles[lib_i].writelines(rec_buf)
+                        paired_cnt += 1
+                        if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
+                            self.log(console,"\t"+str(paired_cnt)+" recs processed")
+                    else:
+                        #unpaired_fwd_buf.extend(rec_buf)
+                        pass
+                    rec_buf = []
+
+            for output_handle in paired_output_reads_file_handles:
+                output_handle.close()
+
+            self.log(console,"\t"+str(paired_cnt)+" REV recs processed")
+
+
+            # store report
+            #
+            report += "TOTAL PAIRED READS: "+str(total_paired_reads)+"\n"
+            report += "TOTAL UNPAIRED FWD READS (discarded): "+str(total_unpaired_fwd_reads)+"\n"
+            report += "TOTAL UNPAIRED REV READS (discarded): "+str(total_unpaired_rev_reads)+"\n"
+            report += "\n"
+            for lib_i in range(params['subsample_fraction']['split_num']):
+                report += "PAIRED READS IN SET "+str(lib_i)+": "+str(total_paired_reads_by_set[lib_i])+"\n"
+
+
+            # upload paired reads
+            #
+            self.log (console, "UPLOAD PAIRED READS LIBS")  # DEBUG
+            paired_obj_refs = []
+            for lib_i in range(params['subsample_fraction']['split_num']):
+                output_fwd_paired_file_path = output_fwd_paired_file_path_base+"-"+str(lib_i)+".fastq"
+                output_rev_paired_file_path = output_rev_paired_file_path_base+"-"+str(lib_i)+".fastq"
+                if not os.path.isfile (output_fwd_paired_file_path) \
+                     or os.path.getsize (output_fwd_paired_file_path) == 0 \
+                   or not os.path.isfile (output_rev_paired_file_path) \
+                     or os.path.getsize (output_rev_paired_file_path) == 0:
+                    
+                    raise ValueError ("failed to create paired output")
+                else:
+                    output_obj_name = params['output_name']+'_paired-'+str(lib_i)
+                    self.log(console, 'Uploading paired reads: '+output_obj_name)
+                    paired_obj_refs.append (readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
+                                                                              'name': output_obj_name,
+                                                                              # remove sequencing_tech when source_reads_ref is working
+                                                                              #'sequencing_tech': sequencing_tech,
+                                                                              'source_reads_ref': input_reads_ref,
+                                                                              'fwd_file': output_fwd_paired_file_path,
+                                                                              'rev_file': output_rev_paired_file_path
+                                                                              })['obj_ref'])
+                    
+                
+
+        # SingleEndLibrary
+        #
+        elif input_reads_obj_type == "KBaseFile.SingleEndLibrary":
+            self.log(console, "Downloading Single End reads file...")
+
+            # Download reads Libs to FASTQ files
+            input_fwd_file_path = readsLibrary['files'][input_reads_ref]['files']['fwd']
+            sequencing_tech     = readsLibrary['files'][input_reads_ref]['sequencing_tech']
+
+            # file paths
+            input_fwd_path = re.sub ("\.fastq$", "", input_fwd_file_path)
+            input_fwd_path = re.sub ("\.FASTQ$", "", input_fwd_path)
+            output_fwd_paired_file_path_base   = input_fwd_path+"_fwd_paired"
+
+            # get "paired" ids
+            self.log (console, "DETERMINING IDS")  # DEBUG
+            paired_ids = dict()
+            paired_ids_list = []
+            paired_lib_i = dict()
+            paired_buf_size = 100000
+            recs_beep_n = 1000000
+
+            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+                rec_line_i = -1
+                for line in input_reads_file_handle:
+                    rec_line_i += 1
+                    if rec_line_i == 3:
+                        rec_line_i = -1
+                    elif rec_line_i == 0:
+                        if not line.startswith('@'):
+                            raise ValueError ("badly formatted rec line: '"+line+"'")
+                        read_id = line.rstrip('\n')
+                        read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
+                        if read_id in paired_ids:
+                            self.log (console, "WARNING: repeat read_id "+read_id+" in reads library "+input_reads_obj_name)
+                        paired_ids[read_id] = True
+                        paired_ids_list.append(read_id)
+                        # DEBUG
+#                        if rec_cnt % 100 == 0:
+#                            self.log(console,"read_id: '"+str(read_id)+"'")
+#                        rec_cnt += 1 
+            total_paired_reads = len(paired_ids_list)
+            self.log (console, "TOTAL READS CNT: "+str(total_paired_reads))  # DEBUG
+
+
+            # Determine sublibrary sizes
+            if use_reads_num:
+                reads_per_lib = params['subsample_fraction']['reads_num']
+                if reads_per_lib > total_paired_reads // params['subsample_fraction']['split_num']:
+                    raise ValueError ("must specify reads_num <= total_reads_cnt / split_num.  You have reads_num:"+str(params['subsample_fraction']['reads_num'])+" > total_reads_cnt:"+str(total_paired_reads)+" / split_num:"+str(params['subsample_fraction']['split_num'])+".  Instead try reads_num <= "+str(total_paired_reads // params['subsample_fraction']['split_num']))
+            elif use_reads_perc:
+                reads_per_lib = int ((params['subsample_fraction']['reads_perc']/100.0) * total_paired_reads)
+                if reads_per_lib > total_paired_reads // params['subsample_fraction']['split_num']:
+                    raise ValueError ("must specify reads_perc <= 1 / split_num.  You have reads_perc:"+str(params['subsample_fraction']['reads_perc'])+" > 1 / split_num:"+str(params['subsample_fraction']['split_num'])+".  Instead try reads_perc <= "+ str(int(100 * 1/params['subsample_fraction']['split_num'])))
+            else:
+                raise ValueError ("error in logic reads_num vs. reads_perc logic")
+
+            
+            # Determine random membership in each sublibrary
+            self.log (console, "GETTING RANDOM SUBSAMPLES")  # DEBUG
+
+            for i,read_id in enumerate(random.sample (paired_ids_list, reads_per_lib * params['subsample_fraction']['split_num'])):
+                lib_i = i % params['subsample_fraction']['split_num']
+                paired_lib_i[read_id] = lib_i
+
+
+            # set up for file io
+            total_paired_reads = 0
+            total_paired_reads_by_set = []
+            paired_buf_size = 1000000
+
+
+            # split reads
+            self.log (console, "WRITING SPLIT SINGLE END READS")  # DEBUG
+            paired_output_reads_file_handles = []
+            for lib_i in range(params['subsample_fraction']['split_num']):
+                paired_output_reads_file_handles.append(open (output_fwd_paired_file_path_base+"-"+str(lib_i)+".fastq", 'w', paired_buf_size))
+                total_paired_reads_by_set.append(0)
+
+            rec_buf = []
+            last_read_id = None
+            paired_cnt = 0
+            recs_beep_n = 1000000
+            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+                rec_line_i = -1
+                for line in input_reads_file_handle:
+                    rec_line_i += 1
+                    if rec_line_i == 3:
+                        rec_line_i = -1
+                    elif rec_line_i == 0:
+                        if not line.startswith('@'):
+                            raise ValueError ("badly formatted rec line: '"+line+"'")
+                        total_paired_reads += 1
+                        if last_read_id != None:
+                            try:
+                                lib_i = paired_lib_i[last_read_id]
+                                total_paired_reads_by_set[lib_i] += 1
+                                paired_output_reads_file_handles[lib_i].writelines(rec_buf)
+                                paired_cnt += 1
+                            except:
+                                pass
+                            if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
+                                self.log(console,"\t"+str(paired_cnt)+" recs processed")
+                            rec_buf = []
+                        read_id = line.rstrip('\n')
+                        read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
+                        last_read_id = read_id
+                    rec_buf.append(line)
+                # last rec
+                if len(rec_buf) > 0:
+                    if last_read_id != None:
+                        try:
+                            lib_i = paired_lib_i[last_read_id]
+                            total_paired_reads_by_set[lib_i] += 1
+                            paired_output_reads_file_handles[lib_i].writelines(rec_buf)
+                            paired_cnt += 1
+                        except:
+                            pass
+                    if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
+                        self.log(console,"\t"+str(paired_cnt)+" recs processed")
+                    rec_buf = []
+
+            for output_handle in paired_output_reads_file_handles:
+                output_handle.close()
+
+
+            # store report
+            #
+            report += "TOTAL READS: "+str(total_paired_reads)+"\n"
+            for lib_i in range(params['subsample_fraction']['split_num']):
+                report += "SINGLE END READS IN SET "+str(lib_i)+": "+str(total_paired_reads_by_set[lib_i])+"\n"
+
+
+            # upload reads
+            #
+            self.log (console, "UPLOADING SPLIT SINGLE END READS")  # DEBUG
+            paired_obj_refs = []
+            for lib_i in range(params['subsample_fraction']['split_num']):
+                output_fwd_paired_file_path = output_fwd_paired_file_path_base+"-"+str(lib_i)+".fastq"
+                if not os.path.isfile (output_fwd_paired_file_path) \
+                        or os.path.getsize (output_fwd_paired_file_path) == 0:
+                    
+                    raise ValueError ("failed to create single end library output")
+                else:
+                    output_obj_name = params['output_name']+'-'+str(lib_i)
+                    self.log(console, 'Uploading single end reads: '+output_obj_name)
+                    paired_obj_refs.append( readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
+                                                                              'name': output_obj_name,
+                                                                              # remove sequencing_tech when source_reads_ref is working
+                                                                              #'sequencing_tech': sequencing_tech,
+                                                                              'source_reads_ref': input_reads_ref,
+                                                                              'fwd_file': output_fwd_paired_file_path
+                                                                              })['obj_ref'])
+                                            
+        else:
+            raise ValueError ("unknown ReadLibrary type as input: "+str(input_reads_obj_type))
+
+
+        # save output readsSet
+        #
+        self.log (console, "SAVING READSSET")  # DEBUG
+        items = []
+        for lib_i,lib_ref in enumerate(paired_obj_refs):
+            label = params['output_name']+'-'+str(lib_i)
+            items.append({'ref': lib_ref,
+                          'label': label
+                          #'data_attachment': ,
+                          #'info':
+                              })
+        description = params['desc']
+        output_readsSet_obj = { 'description': params['desc'],
+                                'items': items
+                                }
+        output_readsSet_name = str(params['output_name'])
+        setAPI_Client = SetAPI (url=self.serviceWizardURL, token=ctx['token'])  # for dynamic service
+        readsSet_ref = setAPI_Client.save_reads_set_v1 ({'workspace_name': params['workspace_name'],
+                                                         'output_object_name': output_readsSet_name,
+                                                         'data': output_readsSet_obj
+                                                         })['set_ref']
+                              
+
+        # build report
+        #
+        self.log (console, "SAVING REPORT")  # DEBUG        
+        reportObj = {'objects_created':[], 
+                     'text_message': report}
+
+        reportObj['objects_created'].append({'ref':readsSet_ref,
+                                             'description':params['desc']})
+
+
+        # save report object
+        #
+        report = KBaseReport(self.callbackURL, token=ctx['token'], service_ver=SERVICE_VER)
+        report_info = report.create({'report':reportObj, 'workspace_name':params['workspace_name']})
+
+        returnVal = { 'report_name': report_info['name'], 'report_ref': report_info['ref'] }
+        #END KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads
+
+        # At some point might do deeper type checking...
+        if not isinstance(returnVal, dict):
+            raise ValueError('Method KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads return value ' +
                              'returnVal is not type dict as required.')
         # return the results
         return [returnVal]

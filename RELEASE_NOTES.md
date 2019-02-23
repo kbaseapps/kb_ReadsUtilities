@@ -1,3 +1,7 @@
+### Version 1.2.0
+__Changes__
+- added generate_microbiome_in_silico_reads_from_real_reads() method
+
 ### Version 1.1.0
 __Changes__
 - patched "bad status line" error with newer kb-sdk install of SDK_LOCAL clients
