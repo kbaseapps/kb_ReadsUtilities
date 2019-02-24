@@ -26,7 +26,8 @@ from biokbase.AbstractHandle.Client import AbstractHandle as HandleService
 
 # SDK Utils
 from installed_clients.ReadsUtilsClient import ReadsUtils
-from installed_clients.GenomeFileUtilClient import GenomeFileUtil
+from installed_clients.DataFileUtilClient import DataFileUtil
+from installed_clients.AssemblyUtilClient import AssemblyUtil
 from installed_clients.SetAPIServiceClient import SetAPI
 from installed_clients.KBaseReportClient import KBaseReport
 
@@ -79,18 +80,6 @@ class kb_ReadsUtilities:
         print(message)
         sys.stdout.flush()
 
-    def get_single_end_read_library(self, ws_data, ws_info, forward):
-        pass
-
-    def get_feature_set_seqs(self, ws_data, ws_info):
-        pass
-
-    def get_genome_feature_seqs(self, ws_data, ws_info):
-        pass
-
-    def get_genome_set_feature_seqs(self, ws_data, ws_info):
-        pass
-
 
     # Helper script borrowed from the transform service, logger removed
     #
@@ -114,7 +103,7 @@ class kb_ReadsUtilities:
         if filePath is None:
             raise Exception("No file given for upload to SHOCK!")
 
-        dataFile = open(os.path.abspath(filePath), 'rb')
+        dataFile = open(os.path.abspath(filePath), 'r')
         m = MultipartEncoder(fields={'upload': (os.path.split(filePath)[-1], dataFile)})
         header['Content-Type'] = m.content_type
 
@@ -527,7 +516,7 @@ class kb_ReadsUtilities:
             # read fwd file to get fwd ids
 #            rec_cnt = 0  # DEBUG
             self.log (console, "GETTING IDS")  # DEBUG
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -559,7 +548,7 @@ class kb_ReadsUtilities:
             paired_cnt = 0
             capture_type_paired = False
 
-            with open (input_rev_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_rev_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -613,7 +602,7 @@ class kb_ReadsUtilities:
 
             self.log(console,"\t"+str(paired_cnt)+" recs processed")
             self.log (console, "WRITING REV UNPAIRED")  # DEBUG
-            output_reads_file_handle = open (output_rev_unpaired_file_path, 'w', 0)
+            output_reads_file_handle = open (output_rev_unpaired_file_path, 'w')
             output_reads_file_handle.writelines(unpaired_rev_buf)
             output_reads_file_handle.close()
 
@@ -630,7 +619,7 @@ class kb_ReadsUtilities:
             paired_cnt = 0
             capture_type_paired = False
 
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -677,7 +666,7 @@ class kb_ReadsUtilities:
 
             self.log(console,"\t"+str(paired_cnt)+" recs processed")
             self.log (console, "WRITING FWD UNPAIRED")  # DEBUG
-            output_reads_file_handle = open (output_fwd_unpaired_file_path, 'w', 0)
+            output_reads_file_handle = open (output_fwd_unpaired_file_path, 'w')
             output_reads_file_handle.writelines(unpaired_fwd_buf)
             output_reads_file_handle.close()
 
@@ -782,7 +771,7 @@ class kb_ReadsUtilities:
             last_read_id = None
             paired_cnt = 0
             recs_beep_n = 1000000
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -1082,7 +1071,7 @@ class kb_ReadsUtilities:
             # read fwd file to get fwd ids
 #            rec_cnt = 0  # DEBUG
             self.log (console, "GETTING IDS")  # DEBUG
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -1104,7 +1093,7 @@ class kb_ReadsUtilities:
 
             # read reverse to determine paired
             self.log (console, "DETERMINING PAIRED IDS")  # DEBUG
-            with open (input_rev_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_rev_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -1161,7 +1150,7 @@ class kb_ReadsUtilities:
             paired_cnt = 0
             capture_type_paired = False
 
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -1223,7 +1212,7 @@ class kb_ReadsUtilities:
             paired_cnt = 0
             capture_type_paired = False
 
-            with open (input_rev_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_rev_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -1332,7 +1321,7 @@ class kb_ReadsUtilities:
             paired_buf_size = 100000
             recs_beep_n = 1000000
 
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -1394,7 +1383,7 @@ class kb_ReadsUtilities:
             last_read_id = None
             paired_cnt = 0
             recs_beep_n = 1000000
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -2249,7 +2238,7 @@ class kb_ReadsUtilities:
             # read rev file to get rev ids and order
             rec_cnt = 0
             self.log (console, "GETTING REV IDS")  # DEBUG
-            with open (input_rev_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_rev_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -2273,7 +2262,7 @@ class kb_ReadsUtilities:
             rec_cnt = 0
             pair_pos = 0
             self.log (console, "GETTING FWD IDS")  # DEBUG
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -2357,7 +2346,7 @@ class kb_ReadsUtilities:
             unpaired_cnt = 0
             capture_type_paired = False
 
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -2425,7 +2414,7 @@ class kb_ReadsUtilities:
             unpaired_cnt = 0
             capture_type_paired = False
 
-            with open (input_rev_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_rev_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -3348,22 +3337,40 @@ class kb_ReadsUtilities:
         headers = {'Authorization': 'OAuth '+token}
         env = os.environ.copy()
         env['KB_AUTH_TOKEN'] = token
+
+        # dirs
+        timestamp = int((datetime.utcnow() - datetime.utcfromtimestamp(0)).total_seconds()*1000)
+        input_dir = os.path.join(self.scratch,'input.'+str(timestamp))
+        if not os.path.exists(input_dir):
+            os.makedirs(input_dir)
+        output_dir = os.path.join(self.scratch,'output.'+str(timestamp))
+        if not os.path.exists(input_dir):
+            os.makedirs(input_dir)
+
         
+        # Init clients
+        #
         #SERVICE_VER = 'dev'  # DEBUG
         SERVICE_VER = 'release'
-
-        # Init clients
         try:
             wsClient = workspaceService(self.workspaceURL, token=token)            
             [OBJID_I, NAME_I, TYPE_I, SAVE_DATE_I, VERSION_I, SAVED_BY_I, WSID_I, WORKSPACE_I, CHSUM_I, SIZE_I, META_I] = range(11)  # object_info tuple
         except Exception as e:
             raise ValueError('Unable to get Workspace Client' +"\n" + str(e))
         try:
-            readsUtils_Client = ReadsUtils (url=self.callbackURL, token=token)  # SDK local
+            readsUtils_Client = ReadsUtils (url=self.callbackURL, token=token, service_ver=SERVICE_VER)
         except Exception as e:
             raise ValueError('Unable to get ReadsUtils Client' +"\n" + str(e))
         try:
-            setAPI_Client = SetAPI (url=self.serviceWizardURL, token=token)  # for dynamic service
+            dfuClient = DataFileUtil (url=self.callbackURL, token=token, service_ver=SERVICE_VER)
+        except Exception as e:
+            raise ValueError('Unable to get AssemblyUtil Client' +"\n" + str(e))
+        try:
+            AssemblyUtilClient = AssemblyUtil (url=self.callbackURL, token=token, service_ver=SERVICE_VER)
+        except Exception as e:
+            raise ValueError('Unable to get AssemblyUtil Client' +"\n" + str(e))
+        try:
+            setAPI_Client = SetAPI (url=self.serviceWizardURL, token=token, service_ver=SERVICE_VER)
         except Exception as e:
             raise ValueError('Unable to get SetAPI Client' +"\n" + str(e))
         try:
@@ -3395,26 +3402,24 @@ class kb_ReadsUtilities:
 #            if arg not in params or params[arg] == None or params[arg] == '':
 #                params[arg] = defaults[arg]
 
-        if 'subsample_fraction' not in params or params['subsample_fraction'] == None:
+        if not params.get('subsample_fraction'):
             raise ValueError ("Missing subsample_fraction params")
-        if 'split_num' not in params['subsample_fraction'] or params['subsample_fraction']['split_num'] == None or params['subsample_fraction']['split_num'] < 0:
+        if not int(params['subsample_fraction'].get('split_num',0)):
             raise ValueError ("Missing split_num")
 
         # use split_num to create reads_perc if neither reads_num or reads_perc defined
         use_reads_num  = False
         use_reads_perc = False
-        if ('reads_num' in params['subsample_fraction'] and params['subsample_fraction']['reads_num'] != None and params['subsample_fraction']['reads_num'] > 0):
+        if int(params['subsample_fraction'].get('reads_num',0)):
             self.log (console, "Ignoring reads_perc and just using reads_num: "+str(params['subsample_fraction']['reads_num']))
             use_reads_num  = True
             
-        elif ('reads_perc' in params['subsample_fraction'] and params['subsample_fraction']['reads_perc'] != None and params['subsample_fraction']['reads_perc'] > 0 and params['subsample_fraction']['reads_perc'] <= 100):
+        elif int(params['subsample_fraction'].get('reads_perc',0)) and float(params['subsample_fraction']['reads_perc']) <= 100:
             self.log (console, "Ignoring reads_num and just using reads_perc: "+str(params['subsample_fraction']['reads_perc']))
             use_reads_perc = True
 
-        elif ('reads_num' not in params['subsample_fraction'] or params['subsample_fraction']['reads_num'] == None or params['subsample_fraction']['reads_num'] <= 0) \
-                and ('reads_perc' not in params['subsample_fraction'] or params['subsample_fraction']['reads_perc'] == None or params['subsample_fraction']['reads_perc'] <= 0):
-
-            params['subsample_fraction']['reads_perc'] = int(100.0 * 1.0/params['subsample_fraction']['split_num'])
+        elif not int(params['subsample_fraction'].get('reads_num',0)) and not int(params['subsample_fraction'].get('reads_perc',0)):
+            params['subsample_fraction']['reads_perc'] = int(100.0 * 1.0/float(params['subsample_fraction']['split_num']))
             use_reads_perc = True
 
         else:
@@ -3425,7 +3430,9 @@ class kb_ReadsUtilities:
         provenance = [{}]
         if 'provenance' in ctx:
             provenance = ctx['provenance']
-        provenance[0]['input_ws_objects']=[str(params['input_reads_ref'])]
+        provenance[0]['input_ws_objects']=[]
+        provenance[0]['input_ws_objects'].append(str(params['input_genomeSet_ref']))
+        provenance[0]['input_ws_objects'].append(str(params['input_reads_ref']))
 
 
         # Determine whether read library is of correct type
@@ -3448,12 +3455,245 @@ class kb_ReadsUtilities:
             raise ValueError ("Input reads of type: '"+input_reads_obj_type+"'.  Must be one of "+", ".join(acceptable_types))
 
 
+        # Determine whether paired end lib input params are defined
+        #
+        if input_reads_obj_type in PE_types:
+            if not params.get('pe_orientation') \
+               or not int(params.get('pe_insert_len',0)):
+                raise ValueError ("require Paired-End Orientation and Paired-End insert length for Paired-End library input")
+
+
         # divide reads_num by 2 if paired end library because only counting pairs
         #
-        if input_reads_obj_type in PE_types and 'reads_num' in params['subsample_fraction'] and params['subsample_fraction']['reads_num'] != None and params['subsample_fraction']['reads_num'] != '':
+        if input_reads_obj_type in PE_types and int(params['subsample_fraction'].get('reads_num',0)):
             orig_reads_num = params['subsample_fraction']['reads_num']
             params['subsample_fraction']['reads_num'] = int (orig_reads_num/2.0 + 0.5)
             self.log (console, "Adjusting reads num to number of pairs.  Input reads num: "+str(orig_reads_num)+" new pairs num: "+str(params['subsample_fraction']['reads_num']))
+
+
+        # Get Genome Set and object name <-> ref mapping
+        #
+        genome_name_by_ref = dict()
+        genome_ref_by_name = dict()
+        input_genomeSet_name = None
+        try:
+            #objects = wsClient.get_objects([{'ref': params['input_genomeset_ref']}])
+            objects = wsClient.get_objects2({'objects': [{'ref': params['input_genomeSet_ref']}]})['data']
+            genomeSet = objects[0]['data']
+            info = objects[0]['info']
+
+            input_genomeSet_name = info[NAME_I]
+            type_name = info[TYPE_I].split('.')[1].split('-')[0]
+            if type_name != 'GenomeSet':
+                raise ValueError("Bad Type: Should be GenomeSet instead of '" + type_name + "'")
+        except Exception as e:
+            raise ValueError('Unable to fetch input_genomeSet_ref object from workspace: ' + str(e))
+            #to get the full stack trace: traceback.format_exc()
+
+        for gId in genomeSet['elements'].keys():
+            genomeRef = genomeSet['elements'][gId]['ref']
+            try:
+                already_included = genome_name_by_ref[genomeRef]
+            except:
+                try:
+                    genome_obj_info = wsClient.get_object_info_new ({'objects':[{'ref':genomeRef}]})[0]
+                    genomeName = genome_obj_info[NAME_I]
+                except Exception as e:
+                    raise ValueError('Unable to fetch genome object from workspace: ' + str(genomeRef) + str(e))
+                    #to get the full stack trace: traceback.format_exc()
+                genome_name_by_ref[genomeRef] = genomeName
+                genome_ref_by_name[genomeName] = genomeRef
+
+            
+        # Determine relative unbiased percentages of genomes
+        #
+        genome_abundances = dict()
+        genome_ref_order = []
+        summed_abundance = 0.0
+        if not params.get('genome_abundances'):
+            for genome_ref in sorted(genome_name_by_ref.keys()):
+                genome_ref_order.append(genome_ref)
+            n_genomes = len(genome_ref_order)
+            even_perc = 100.0 / n_genomes
+            for genome_ref in genome_ref_order:
+                genome_abundances[genome_ref] = even_perc
+        else:
+            ws_ref_pattern = re.compile('^\d+/\d+/\d+$')
+            for genome_abundance_row in params['genome_abundances'].split("\n"):
+                genome_abundance_row = genome_abundance_row.strip()
+                [genome_id, abundance] = genome_abundance_row.split()
+
+                # genome_ref
+                if ws_ref_pattern.match(genome_id):
+                    genome_ref = genome_id
+                else:
+                    try:
+                        genome_ref = genome_ref_by_name[genome_id]
+                    except:
+                        raise ValueError ("Genome object: "+genome_id+" in genome abundances configuration not found in Genome Set: "+input_genomeSet_name)
+                genome_ref_order.append(genome_ref)
+                
+                # abundance
+                abundance = float(abundance)
+                if abundance < 0  or  abundance > 100:
+                    raise ValueError ("Genome object: "+genome_id+" ("+str(genome_ref)+") in genome abundances configuration has a non-percentile abundance: "+str(abundance))
+                genome_abundances[genome_ref] = abundance
+                summed_abundance += abundance
+                
+            # add unspecified genomes
+            if summed_abundance > 100.1:
+                raise ValueError ("Genome abundances sum to: "+str(summed_abundance)+".  Must be <= 100.0")
+            elif summed_abundance < 99.9:
+                abundance_remainder = 100.0 - summed_abundance
+                genome_ref_remainder = []
+                for genome_ref in sorted(genome_name_by_ref.keys()):
+                    if genome_ref in genome_abundances:
+                        continue
+                    genome_ref_remainder.append(genome_ref)
+                if len(genome_ref_remainder) == 0:
+                    raise ValueError ("There were no unspecified genomes in Genome Set: "+input_genomeSet_name+" ("+str(input_genomeSet_ref)+") to assign the remaining abundance: "+str(abundance_remainder))
+
+                # split remaining abundance evenly
+                n_remaining_genomes = len(genome_ref_remainder)
+                even_perc = abundance_remainder / n_remaining_genomes
+                for genome_ref in genome_ref_remainder:
+                    genome_ref_order.append(genome_ref)
+                    genome_abundances[genome_ref] = even_perc
+
+
+        # Check on progress
+        #
+        self.log(console, "TOTAL ABUNDANCE: "+str(summed_abundance))
+        for genome_ref in genome_ref_order:
+            self.log(console, "Genome Abundance: "+str(genome_abundances[genome_ref])+" for "+genome_name_by_ref[genome_ref])
+
+
+        # Determine assembly lengths and Download source Assemblies
+        #
+        assembly_file_by_genome_ref = dict()
+        assembly_len_by_genome_ref = dict()
+        total_assembly_len = 0
+        for genome_ref in genome_ref_order:
+            assembly_len_by_genome_ref[genome_ref] = 0
+            try:
+                genome_obj = wsClient.get_objects([{'ref': genome_ref}])[0]['data']
+            except:
+                raise ValueError("unable to fetch genome: " + genome_ref)
+
+            # contig lengths may already be in Genome obj
+            if genome_obj.get('contig_ids') and genome_obj.get('contig_lengths'):
+                for contig_i, contig_id in enumerate(genome_obj['contig_ids']):
+                    contig_len = genome_obj['contig_lengths'][contig_i]
+                    assembly_len_by_genome_ref[genome_ref] += contig_len
+                    total_assembly_len += contig_len
+
+            # Get genome_assembly_refs
+            genome_assembly_ref = None
+            genome_assembly_type = None
+            if not genome_obj.get('contigset_ref') and not genome_obj.get('assembly_ref'):
+                msg = "Genome " + genome_name_by_ref[genome_ref] + " ("+genome_ref+") "+ \
+                    " MISSING BOTH contigset_ref AND assembly_ref.  Cannot process.  Exiting."
+                raise ValueError(msg)
+            elif genome_obj.get('assembly_ref'):
+                assembly_ref = genome_obj['assembly_ref']
+                genome_assembly_type = 'assembly'
+                msg = "Genome " + genome_name_by_ref[genome_ref] + " ("+genome_ref+") "+ \
+                    " USING assembly_ref: "+assembly_ref
+                self.log(console, msg)
+            elif genome_obj.get('contigset_ref'):
+                assembly_ref = genome_obj['contigset_ref']
+                genome_assembly_type = 'contigset'
+                msg = "Genome " + genome_name_by_ref[genome_ref] + " ("+genome_ref+") "+ \
+                    " USING contigset_ref: "+assembly_ref
+                self.log(console, msg)
+            else:
+                raise ValueError ("Bad logic in finding assembly or contigset in genome object: "+genome_name_by_ref[genome_ref]+" ("+genome_ref+")")
+
+            # Get and save assemblies
+            contig_file = AssemblyUtilClient.get_assembly_as_fasta({'ref':assembly_ref}).get('path')
+            sys.stdout.flush()
+            contig_file_path = dfuClient.unpack_file({'file_path': contig_file})['file_path']
+            assembly_file_by_genome_ref[genome_ref] = contig_file_path
+
+
+        # Read assemblies into buffers
+        #
+        assembly_bufs_by_genome_ref = dict()
+        for genome_ref in genome_ref_order:
+            assembly_bufs_by_genome_ref[genome_ref] = []
+
+            # score fasta lens in contig files
+            read_buf_size  = 65536
+            write_buf_size = 65536
+
+            with open (assembly_file_by_genome_ref[genome_ref], 'r', read_buf_size) as ass_handle:
+                seq_buf = ''
+                last_header = ''
+                for fasta_line in ass_handle:
+                    if fasta_line.startswith('>'):
+                        if seq_buf != '':
+                            assembly_bufs_by_genome_ref[genome_ref].append(seq_buf)
+                            seq_buf = ''
+                            last_header = fasta_line
+                    else:
+                        seq_buf += ''.join(fasta_line.split())
+                if seq_buf != '':
+                    assembly_bufs_by_genome_ref[genome_ref].append(seq_buf)
+                    seq_buf = ''
+
+
+        # Add assembly lengths if not yet captured
+        #
+        for genome_ref in genome_ref_order:
+            if assembly_len_by_genome_ref[genome_ref] == 0:
+                for ass_buf in assembly_bufs_by_genome_ref[genome_ref]:
+                    contig_len = len(ass_buf)
+                    assembly_len_by_genome_ref[genome_ref] += contig_len
+                    total_assembly_len += contig_len
+
+
+        # Adjust relative abundance to include genome length bias
+        #
+        if int(params.get('genome_length_bias',0)):
+            scaled_total = 0
+            for genome_ref in genome_ref_order:
+                length_bias = assembly_len_by_genome_ref[genome_ref] / float(total_assembly_len)
+                self.log(console, "Genome Bias: "+str(length_bias)+" for "+genome_name_by_ref[genome_ref])  # DEBUG
+                genome_abundances[genome_ref] *= length_bias
+                self.log(console, "Biased Abundance: "+str(genome_abundances[genome_ref])+" for "+genome_name_by_ref[genome_ref])  # DEBUG
+
+
+        # Rescale relative abundances to fix biased abundances (and fix near but off 100% totals)
+        #
+        adjusted_summed_abundance = 0
+        corrected_summed_abundance = 0
+        for genome_ref in genome_ref_order:
+            adjusted_summed_abundance += genome_abundances[genome_ref]
+        for genome_ref in genome_ref_order:
+            genome_abundances[genome_ref] = 100 * genome_abundances[genome_ref] / adjusted_summed_abundance
+            corrected_summed_abundance += genome_abundances[genome_ref]
+
+
+        # Check on progress
+        #
+        self.log(console, "REVISED TOTAL ABUNDANCE: "+str(adjusted_summed_abundance))
+        self.log(console, "CORRECTED TOTAL ABUNDANCE: "+str(corrected_summed_abundance))
+        for genome_ref in genome_ref_order:
+            self.log(console, "Corrected Genome Abundance: "+str(genome_abundances[genome_ref]))
+
+
+        # Build genome lookup for random sampler
+        #
+        genome_lookup = []
+        genome_lookup_resolution = 1000000
+        for genome_ref in genome_ref_order:
+            for i in range(int(genome_lookup_resolution * genome_abundances[genome_ref]/100.0)):
+                genome_lookup.append(genome_ref)
+        filled = len(genome_lookup)
+        if filled < genome_lookup_resolution:
+            for i in range(genome_lookup_resolution-filled):
+                genome_i = i % len(genome_ref_order)
+                genome_lookup.append(genome_ref_order[genome_i])
 
 
         # Download Reads
@@ -3498,7 +3738,7 @@ class kb_ReadsUtilities:
             # read fwd file to get fwd ids
 #            rec_cnt = 0  # DEBUG
             self.log (console, "GETTING IDS")  # DEBUG
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -3520,7 +3760,7 @@ class kb_ReadsUtilities:
 
             # read reverse to determine paired
             self.log (console, "DETERMINING PAIRED IDS")  # DEBUG
-            with open (input_rev_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_rev_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -3577,7 +3817,7 @@ class kb_ReadsUtilities:
             paired_cnt = 0
             capture_type_paired = False
 
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -3639,7 +3879,7 @@ class kb_ReadsUtilities:
             paired_cnt = 0
             capture_type_paired = False
 
-            with open (input_rev_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_rev_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -3748,7 +3988,7 @@ class kb_ReadsUtilities:
             paired_buf_size = 100000
             recs_beep_n = 1000000
 
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -3810,7 +4050,7 @@ class kb_ReadsUtilities:
             last_read_id = None
             paired_cnt = 0
             recs_beep_n = 1000000
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
