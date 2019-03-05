@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime
 from pprint import pprint, pformat
 import numpy as np
+import math
 import gzip
 import random
 
@@ -79,6 +80,192 @@ class kb_ReadsUtilities:
             target.append(message)
         print(message)
         sys.stdout.flush()
+
+
+    def reverse_complement (self,seq):
+        rev_seq = ''
+        complement = {
+            'A': 'T',
+            'T': 'A',
+            'G': 'C',
+            'C': 'G',
+            'N': 'N'
+        }
+        for c in seq[::-1]:
+            if not complement.get(c):
+                raise ValueError ("unknown character '"+c+"' in seq '"+seq+"'")
+            rev_seq += complement[c]
+
+        return rev_seq
+
+    def seq_call_with_error(self,c=None, qual=None, qual_type='phred33'):
+        if c == 'N': return c
+
+        if not c or not qual:
+            raise ValueError ("missing param for seq_call_with_error()")
+
+        def qual33(qual64): return chr(ord(qual64)-31)
+
+        def error_prob(qual33):
+            # P = 10^-Q/10
+            # Q = -10*log10(P)
+            Q = ord(qual33)-33
+            P = math.pow(10,-Q/10.0)
+            return P
+
+        base = ['A', 'T', 'G', 'C']
+
+        if qual_type == 'phred64':
+            qual = qual33(qual)
+        elif qual_type != 'phred33':
+            raise ValueError ("seq_call_with_error() can only handle phred33 and phred64")
+
+        if random.uniform(0.0,1.0) <= error_prob(qual):
+            #print("adding error to call.  QUAL: "+str(qual)+" prob: "+str(error_prob(qual))+" orig_base: "+c)  # DEBUG
+            c = base[random.randint(0,3)]
+            #print("new base: "+c)  # DEBUG
+        return c
+
+
+    # replace read with source genome sequence
+    def overlay_source_genome_seq (self,
+                                   read_rec=None,
+                                   source_genome_buf=None,
+                                   contig_mapping=None,
+                                   lib_type='PE',  # 'PE/SE'
+                                   read_dir='fwd',  # 'fwd/rev'
+                                   fwd_insilico_pos=None,  # [contig_i,strand(+/-),beg_pos]
+                                   pe_orientation='IN-IN',  # 'IN-IN' only at this time
+                                   pe_insert_len=None,  # typically 450: fwd+gap+rev = 150+150+150
+                                   add_errors_by_qual_freq=True):
+
+        [POS_CONTIG_I, POS_STRAND_I, POS_BEG_I] = range(3)
+        [READ_HEADER_LINE_I, READ_SEQ_LINE_I, READ_SPACER_LINE_I, READ_QUAL_LINE_I] = range(4)
+        insilico_pos = []
+        insilico_read_rec_buf = []
+
+        # call check
+        if not read_rec or not source_genome_buf or not contig_mapping:
+            raise ValueError ("missing required args to overlay_source_genome_seq()")
+        if lib_type == 'PE':
+            if not pe_orientation or not pe_insert_len:
+                raise ValueError ("missing pe_orientation or pe_insert_len for overlay_source_genome_seq()")
+            if read_dir == 'rev':
+                if not fwd_insilico_pos:
+                    raise ValueError ("missing fwd_insilico_pos for reverse read in overlay_source_genome_seq()")
+        if pe_insert_len:
+            pe_insert_len = int(pe_insert_len)
+
+        # break up rec
+        header_line = read_rec[READ_HEADER_LINE_I]
+        seq_line    = read_rec[READ_SEQ_LINE_I].rstrip()
+        qual_line   = read_rec[READ_QUAL_LINE_I].rstrip()
+        if len(seq_line) != len(qual_line):
+            raise ValueError ("inconsistent lengths for seq and qual in read rec: "+header_line)
+        read_len = len(seq_line)
+
+        # create new rec
+        insilico_read_rec_buf.append(header_line)
+        insilico_read_rec_buf.append('')  # add sequence later
+        insilico_read_rec_buf.append(read_rec[READ_SPACER_LINE_I])  # should just be the '+' symbol
+        insilico_read_rec_buf.append(qual_line+"\n")
+
+        # if reverse read, assign contig, strand, and pos from fwd_insilico_pos
+        if lib_type == 'PE' and read_dir == 'rev':
+            contig_i = fwd_insilico_pos[POS_CONTIG_I]
+            if pe_orientation == 'IN-IN':
+                if fwd_insilico_pos[POS_STRAND_I] == '+':
+                    strand = '-'
+                    beg_pos = fwd_insilico_pos[POS_BEG_I] + (pe_insert_len - 1)
+                else:
+                    strand = '+'
+                    beg_pos = fwd_insilico_pos[POS_BEG_I] - (pe_insert_len - 1)
+            else:
+                raise ValueError ("do not yet support Paired-End orientations other than IN-IN in overlay_source_genome_seq()")
+
+        # pick contig
+        else:  # read_dir == 'fwd'
+            acceptable_contig = False
+            max_tries = 1000
+            contig_i = -1
+            contig_len = -1
+            for try_i in range(max_tries):
+                contig_i = contig_mapping[random.randint (0,len(contig_mapping)-1)]
+                contig_len = len(source_genome_buf[contig_i])
+                if lib_type == 'SE':
+                    if read_len < contig_len:
+                        acceptable_contig = True
+                        break
+                else:
+                    if 2*read_len < contig_len and pe_insert_len < contig_len:
+                        acceptable_contig = True
+                        break
+            if not acceptable_contig:
+                raise ValueError ("unable to find long enough contig for "+header_line)
+
+            # pick strand
+            if random.randint(0,1) == 0:
+                strand = '+'
+            else:
+                strand = '-'
+
+            # pick beg_pos
+            max_tries = 1000
+            beg_pos = -1
+            acceptable_pos = False
+            for try_i in range(max_tries):
+                if strand == '+':
+                    if lib_type == 'SE':
+                        beg_pos = random.randint(0,contig_len - read_len - 1)
+                        acceptable_pos = True
+                        break
+                    else:
+                        beg_pos = random.randint(0,contig_len - pe_insert_len - 1)
+                        if contig_len - beg_pos > 2*read_len:
+                            acceptable_pos = True
+                            break
+                else:  # strand == '-'
+                    if lib_type == 'SE':
+                        beg_pos = random.randint(read_len-1, contig_len-1)
+                        acceptable_pos = True
+                        break
+                    else:
+                        beg_pos = random.randint(pe_insert_len-1, contig_len-1)
+                        if beg_pos > 2*read_len:
+                            acceptable_pos = True
+                            break
+            if not acceptable_pos:
+                raise ValueError ("unable to find acceptable position for "+header_line)
+
+        # set insilico_pos to return (only matters for fwd reads of PE lib)
+        insilico_pos = [contig_i, strand, beg_pos]
+
+        # overlay genome sequence onto read
+        if strand == '+':
+            genome_slice = source_genome_buf[contig_i][beg_pos:beg_pos+read_len]
+            #print("POSSEQ: "+source_genome_buf[contig_i][beg_pos:beg_pos+read_len])  # DEBUG
+            if len(genome_slice) != read_len:
+                raise ValueError ("unequal read length.  target read len: "+str(read_len)+" insilico read len: "+str(len(genome_slice)))
+        else:
+            #print("SOURCE: "+source_genome_buf[contig_i][beg_pos+1-read_len:beg_pos+1])  # DEBUG
+
+            genome_slice = self.reverse_complement(source_genome_buf[contig_i][beg_pos+1-read_len:beg_pos+1])
+            #print("COMPLT: "+genome_slice)  # DEBUG
+            if len(genome_slice) != read_len:
+                raise ValueError ("unequal read length.  target read len: "+str(read_len)+" insilico read len: "+str(len(genome_slice)))
+        insilico_read_rec_buf[READ_SEQ_LINE_I] = genome_slice+"\n"
+
+        # add in errors
+        if add_errors_by_qual_freq:
+            new_seq = ''
+            for c_i,c in enumerate(genome_slice):
+                qual = qual_line[c_i]
+                new_seq += self.seq_call_with_error(c, qual, 'phred33')
+
+            insilico_read_rec_buf[READ_SEQ_LINE_I] = new_seq+"\n"
+                    
+        # return
+        return (insilico_pos, insilico_read_rec_buf)
 
 
     # Helper script borrowed from the transform service, logger removed
@@ -3619,8 +3806,10 @@ class kb_ReadsUtilities:
         # Read assemblies into buffers
         #
         assembly_bufs_by_genome_ref = dict()
+        contig_i_weighted_mapping_by_genome_ref = dict()
         for genome_ref in genome_ref_order:
             assembly_bufs_by_genome_ref[genome_ref] = []
+            contig_i_weighted_mapping_by_genome_ref[genome_ref] = []
 
             # score fasta lens in contig files
             read_buf_size  = 65536
@@ -3629,16 +3818,23 @@ class kb_ReadsUtilities:
             with open (assembly_file_by_genome_ref[genome_ref], 'r', read_buf_size) as ass_handle:
                 seq_buf = ''
                 last_header = ''
+                contig_i = 0
                 for fasta_line in ass_handle:
+                    fasta_line = fasta_line.strip()
                     if fasta_line.startswith('>'):
                         if seq_buf != '':
                             assembly_bufs_by_genome_ref[genome_ref].append(seq_buf)
+                            for pos_i in range(len(seq_buf)):
+                                contig_i_weighted_mapping_by_genome_ref[genome_ref].append(contig_i)
+                            contig_i += 1
                             seq_buf = ''
                             last_header = fasta_line
                     else:
                         seq_buf += ''.join(fasta_line.split())
                 if seq_buf != '':
                     assembly_bufs_by_genome_ref[genome_ref].append(seq_buf)
+                    for pos_i in range(len(seq_buf)):
+                        contig_i_weighted_mapping_by_genome_ref[genome_ref].append(contig_i)
                     seq_buf = ''
 
 
@@ -3686,14 +3882,14 @@ class kb_ReadsUtilities:
         #
         genome_lookup = []
         genome_lookup_resolution = 1000000
-        for genome_ref in genome_ref_order:
+        for genome_i,genome_ref in enumerate(genome_ref_order):
             for i in range(int(genome_lookup_resolution * genome_abundances[genome_ref]/100.0)):
-                genome_lookup.append(genome_ref)
+                genome_lookup.append(genome_i)
         filled = len(genome_lookup)
         if filled < genome_lookup_resolution:
             for i in range(genome_lookup_resolution-filled):
                 genome_i = i % len(genome_ref_order)
-                genome_lookup.append(genome_ref_order[genome_i])
+                genome_lookup.append(genome_i)
 
 
         # Download Reads
@@ -3732,6 +3928,8 @@ class kb_ReadsUtilities:
             paired_ids = dict()
             paired_ids_list = []
             paired_lib_i = dict()
+            source_genome_i = dict()
+            read_ids_by_lib = []
             paired_buf_size = 100000
             recs_beep_n = 1000000
 
@@ -3798,17 +3996,24 @@ class kb_ReadsUtilities:
 
             
             # Determine random membership in each sublibrary
-            self.log (console, "GETTING RANDOM SUBSAMPLES")  # DEBUG
-
-            for i,read_id in enumerate(random.sample (paired_ids_list, reads_per_lib * params['subsample_fraction']['split_num'])):
-                lib_i = i % params['subsample_fraction']['split_num']
+            self.log (console, "GETTING RANDOM READ SUBSAMPLES")  # DEBUG
+            for lib_i in range(int(params['subsample_fraction']['split_num'])):
+                read_ids_by_lib.append([])
+            for i,read_id in enumerate(random.sample (paired_ids_list, reads_per_lib * int(params['subsample_fraction']['split_num']))):
+                lib_i = i % int(params['subsample_fraction']['split_num'])
                 paired_lib_i[read_id] = lib_i
+                read_ids_by_lib[lib_i].append(read_id)
 
+            # Determine random source genome for each read
+            self.log (console, "GETTING RANDOM GENOME SOURCE ASSIGNMENT FOR READS")  # DEBUG
+            for lib_i in range(len(read_ids_by_lib)):
+                for read_i,genome_lookup_i_map in enumerate(random.sample (genome_lookup, reads_per_lib)):
+                    source_genome_i[read_ids_by_lib[lib_i][read_i]] = genome_lookup_i_map
 
             # split fwd paired
             self.log (console, "WRITING FWD SPLIT PAIRED")  # DEBUG
             paired_output_reads_file_handles = []
-            for lib_i in range(params['subsample_fraction']['split_num']):
+            for lib_i in range(int(params['subsample_fraction']['split_num'])):
                 paired_output_reads_file_handles.append(open (output_fwd_paired_file_path_base+"-"+str(lib_i)+".fastq", 'w', paired_buf_size))
                 total_paired_reads_by_set.append(0)
 
@@ -3816,6 +4021,7 @@ class kb_ReadsUtilities:
             last_read_id = None
             paired_cnt = 0
             capture_type_paired = False
+            fwd_insilico_position = dict()
 
             with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
@@ -3829,7 +4035,34 @@ class kb_ReadsUtilities:
                         if last_read_id != None:
                             if capture_type_paired:
                                 lib_i = paired_lib_i[last_read_id]
-                                paired_output_reads_file_handles[lib_i].writelines(rec_buf)
+
+                                #if paired_cnt % recs_beep_n == 0:
+                                #    self.log(console,"OLD FWD READ:")  # DEBUG
+                                #    self.log(console,"\n".join(rec_buf)) # DEBUG
+
+                                # replace read with source genome sequence
+                                source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                                
+                                (fwd_insilico_position[last_read_id], insilico_read_rec_buf) = self.overlay_source_genome_seq (
+                                    read_rec=rec_buf, 
+                                    source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                                    contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                                    
+                                    lib_type='PE',
+                                    read_dir='fwd',
+                                    fwd_insilico_pos=None,
+                                    pe_orientation=params['pe_orientation'],
+                                    pe_insert_len=int(params['pe_insert_len']),
+                                    add_errors_by_qual_freq=True
+                                )
+
+                                #if paired_cnt % recs_beep_n == 0:
+                                #    self.log(console,"NEW FWD READ:")  # DEBUG
+                                #    self.log(console,"\n".join(insilico_read_rec_buf)) # DEBUG
+
+                                # write rec to file
+                                paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+
                                 paired_cnt += 1
                                 total_paired_reads_by_set[lib_i] += 1
                                 if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
@@ -3853,7 +4086,23 @@ class kb_ReadsUtilities:
                 if len(rec_buf) > 0:
                     if capture_type_paired:
                         lib_i = paired_lib_i[last_read_id]
-                        paired_output_reads_file_handles[lib_i].writelines(rec_buf)
+
+                        # replace read with source genome sequence
+                        source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                        (fwd_insilico_position[last_read_id], insilico_read_rec_buf) = self.overlay_source_genome_seq (read_rec=rec_buf, 
+                            source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                            contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                            lib_type='PE',
+                            read_dir='fwd',
+                            fwd_insilico_pos=None,
+                            pe_orientation=params['pe_orientation'],
+                            pe_insert_len=int(params['pe_insert_len']),
+                            add_errors_by_qual_freq=True
+                        )
+                                
+                        # write rec to file
+                        paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+
                         paired_cnt += 1
                         if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                             self.log(console,"\t"+str(paired_cnt)+" recs processed")
@@ -3891,7 +4140,31 @@ class kb_ReadsUtilities:
                         if last_read_id != None:
                             if capture_type_paired:
                                 lib_i = paired_lib_i[last_read_id]
-                                paired_output_reads_file_handles[lib_i].writelines(rec_buf)
+
+                                #if paired_cnt % recs_beep_n == 0:
+                                #    self.log(console,"OLD REV READ:")  # DEBUG
+                                #    self.log(console,"\n".join(rec_buf)) # DEBUG
+
+                                # replace read with source genome sequence
+                                source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                                (unused, insilico_read_rec_buf) = self.overlay_source_genome_seq (read_rec=rec_buf, 
+                                    source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                                    contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                                    lib_type='PE',
+                                    read_dir='rev',
+                                    fwd_insilico_pos=fwd_insilico_position[last_read_id],
+                                    pe_orientation=params['pe_orientation'],
+                                    pe_insert_len=int(params['pe_insert_len']),
+                                    add_errors_by_qual_freq=True
+                                )
+
+                                #if paired_cnt % recs_beep_n == 0:
+                                #    self.log(console,"NEW REV READ:")  # DEBUG
+                                #    self.log(console,"\n".join(insilico_read_rec_buf)) # DEBUG
+
+                                # write rec to file
+                                paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+
                                 paired_cnt += 1
                                 if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                                     self.log(console,"\t"+str(paired_cnt)+" recs processed")
@@ -3914,7 +4187,23 @@ class kb_ReadsUtilities:
                 if len(rec_buf) > 0:
                     if capture_type_paired:
                         lib_i = paired_lib_i[last_read_id]
-                        paired_output_reads_file_handles[lib_i].writelines(rec_buf)
+
+                        # replace read with source genome sequence
+                        source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                        (unused, insilico_read_rec_buf) = self.overlay_source_genome_seq (read_rec=rec_buf, 
+                            source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                            contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                            lib_type='PE',
+                            read_dir='rev',
+                            fwd_insilico_pos=fwd_insilico_position[last_read_id],
+                            pe_orientation=params['pe_orientation'],
+                            pe_insert_len=int(params['pe_insert_len']),
+                            add_errors_by_qual_freq=True
+                        )
+                        
+                        # write rec to file
+                        paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+
                         paired_cnt += 1
                         if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                             self.log(console,"\t"+str(paired_cnt)+" recs processed")
@@ -3982,9 +4271,13 @@ class kb_ReadsUtilities:
 
             # get "paired" ids
             self.log (console, "DETERMINING IDS")  # DEBUG
+            total_paired_reads = 0
+            total_paired_reads_by_set = []
             paired_ids = dict()
             paired_ids_list = []
             paired_lib_i = dict()
+            source_genome_i = dict()
+            read_ids_by_lib = []
             paired_buf_size = 100000
             recs_beep_n = 1000000
 
@@ -4026,17 +4319,19 @@ class kb_ReadsUtilities:
 
             
             # Determine random membership in each sublibrary
-            self.log (console, "GETTING RANDOM SUBSAMPLES")  # DEBUG
-
+            self.log (console, "GETTING RANDOM READ SUBSAMPLES")  # DEBUG
+            for lib_i in range(int(params['subsample_fraction']['split_num'])):
+                read_ids_by_lib.append([])
             for i,read_id in enumerate(random.sample (paired_ids_list, reads_per_lib * params['subsample_fraction']['split_num'])):
                 lib_i = i % params['subsample_fraction']['split_num']
                 paired_lib_i[read_id] = lib_i
+                read_ids_by_lib[lib_i].append(read_id)
 
-
-            # set up for file io
-            total_paired_reads = 0
-            total_paired_reads_by_set = []
-            paired_buf_size = 1000000
+            # Determine random source genome for each read
+            self.log (console, "GETTING RANDOM GENOME SOURCE ASSIGNMENT FOR READS")  # DEBUG
+            for lib_i in range(len(read_ids_by_lib)):
+                for read_i,genome_lookup_i_map in enumerate(random.sample (genome_lookup, reads_per_lib)):
+                    source_genome_i[read_ids_by_lib[lib_i][read_i]] = genome_lookup_i_map
 
 
             # split reads
@@ -4063,9 +4358,35 @@ class kb_ReadsUtilities:
                         if last_read_id != None:
                             try:
                                 lib_i = paired_lib_i[last_read_id]
-                                total_paired_reads_by_set[lib_i] += 1
-                                paired_output_reads_file_handles[lib_i].writelines(rec_buf)
+
+                                #if paired_cnt % recs_beep_n == 0:
+                                #    self.log(console,"OLD FWD READ:")  # DEBUG
+                                #    self.log(console,"\n".join(rec_buf)) # DEBUG
+
+                                # replace read with source genome sequence
+                                source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                                
+                                (unused, insilico_read_rec_buf) = self.overlay_source_genome_seq (
+                                    read_rec=rec_buf, 
+                                    source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                                    contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                                    lib_type='SE',
+                                    read_dir='fwd',
+                                    fwd_insilico_pos=None,
+                                    pe_orientation=None,
+                                    pe_insert_len=None,
+                                    add_errors_by_qual_freq=True
+                                )
+
+                                #if paired_cnt % recs_beep_n == 0:
+                                #    self.log(console,"NEW FWD READ:")  # DEBUG
+                                #    self.log(console,"\n".join(insilico_read_rec_buf)) # DEBUG
+
+                                # write rec to file
+                                paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)                                
+
                                 paired_cnt += 1
+                                total_paired_reads_by_set[lib_i] += 1
                             except:
                                 pass
                             if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
@@ -4081,6 +4402,25 @@ class kb_ReadsUtilities:
                     if last_read_id != None:
                         try:
                             lib_i = paired_lib_i[last_read_id]
+                            
+                            # replace read with source genome sequence
+                            source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                                
+                            (unused, insilico_read_rec_buf) = self.overlay_source_genome_seq (
+                                read_rec=rec_buf, 
+                                source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                                contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                                lib_type='SE',
+                                read_dir='fwd',
+                                fwd_insilico_pos=None,
+                                pe_orientation=None,
+                                pe_insert_len=None,
+                                add_errors_by_qual_freq=True
+                            )
+                            
+                            # write rec to file
+                            paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)                                
+                            
                             total_paired_reads_by_set[lib_i] += 1
                             paired_output_reads_file_handles[lib_i].writelines(rec_buf)
                             paired_cnt += 1
