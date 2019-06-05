@@ -3,7 +3,7 @@
 #
 name: Add Insert Length to Reads Libraries - v1.0.1
 tooltip: |
-    Add Insert Length and Standard Deviation to Paired End Reads Libraries
+    Add insert length and standard deviation to paired-end ReadsLibraries objects.
 screenshots:
     - AddInsertLen_to_ReadsLibs.png
 
@@ -30,29 +30,32 @@ suggestions:
 parameters :
     input_refs:
         ui-name : |
-            Input reads libraries
+            Input Reads Libraries
         short-hint : |
-            Paired End Reads Lib (or Set) Names here
+            The names of the paired-end ReadsLibrary or ReadsSet.
     insert_len:
         ui-name : |
-            Insert length
+            Insert Length
         short-hint : |
-            Insert length, including read lengths (e.g. for 2x150bp with a 150 base gap, enter "450.0")
+            The insert length, including the read lengths (e.g. for 2x150bp with a 150 base gap, enter "450.0").
     insert_stddev:
         ui-name : |
-            Insert length stddev
+            Insert Length Standard Deviation
         short-hint : |
-            Insert length standard deviation (may include decimal)
+            The insert length standard deviation (may include decimal).
 
 description : |
-    <p>This App allows the user to Add Insert Len and Insert Standard Deviation to <b><i>Paired End Reads Libraries</i></b>.</p>
-    <hr>
-    <p>written for KBase by <a href="mailto:DCChivian@lbl.gov">Dylan Chivian</a></p>
-    <hr>
-    <p>
-    <h3>Description</h3>
-    <b>Add Insert Length to Reads Libraries</b> allows a user to fill in missing Insert Length and Standard Deviation values to Paired End Libraries for those Apps, such as assemblers, that take advantage or require such information.  Insert Length includes the length of each read as well as the gap inbetween (e.g., 2x150bp reads + 150bp gap = 450bp insert length).  The input object itself is modified and the version of the object is increased by one.
-    </p>
+    <p>This App allows a user to fill in missing insert length and standard deviation values to paired-end libraries for Apps, such as assemblers, that take advantage of them (or sometimes require such information). The insert length includes the length of each read plus the gap in between (e.g., 2x150bp reads + 150bp gap = 450bp insert length). The input object itself is modified, and the version of the object is increased by one.</p>
+
+    <p><h3>Configuration</h3></p>
+    <p><b>Input Reads Libraries:</b> You may add insert length information to one or more <b><i>Reads Libraries</i></b> in a single run of the App. For each library, simply click the &quot;+&quot; button and select the <b><i>PairedEndLibrary</i></b> you wish to add. The PairedEndLibrary object will be directly modified rather than create a new object. Additionally, the version of the object will be increased by one.</p>
+
+    <p><b>Insert Length:</b> This is the average value of the insert length distribution. It should be the sum of the lengths of the forward read, the reverse read, and the gap between these reads. For example, if the forward read is 150bp, the reverse is 150bp, and the gap between the 3’ ends of the forward and reverse read is 150bp, then the average insert length entered here should be 450bp.</p>
+
+    <p><b>Insert Length Standard Deviation:</b> Some protocols for shearing DNA are more precise than others. The distribution of lengths may be very tight (with a standard deviation approaching zero) or much broader (perhaps on the order of 10% or more of the average insert length). A typical standard deviation value for Illumina 450bp inserts might be around 15bp.</p>
+
+    <p><strong>Team members who developed &amp; deployed algorithm in KBase:</strong> Dylan Chivian. For questions, please <a href=”http://kbase.us/contact-us/”>contact us</a>.</p>
+
 
 publications :
     -
