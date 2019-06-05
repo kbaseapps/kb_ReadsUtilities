@@ -12,7 +12,7 @@ from __future__ import print_function
 try:
     # baseclient and this client are in a package
     from .baseclient import BaseClient as _BaseClient  # @UnusedImport
-except:
+except ImportError:
     # no they aren't
     from baseclient import BaseClient as _BaseClient  # @Reimport
 
@@ -23,7 +23,7 @@ class kb_ReadsUtilities(object):
             self, url=None, timeout=30 * 60, user_id=None,
             password=None, token=None, ignore_authrc=False,
             trust_all_ssl_certificates=False,
-            auth_svc='https://kbase.us/services/authorization/Sessions/Login'):
+            auth_svc='https://ci.kbase.us/services/auth/api/legacy/KBase/Sessions/Login'):
         if url is None:
             raise ValueError('A url is required')
         self._service_ver = None
@@ -52,9 +52,8 @@ class kb_ReadsUtilities(object):
            structure: parameter "report_name" of type "data_obj_name",
            parameter "report_ref" of type "data_obj_ref"
         """
-        return self._client.call_method(
-            'kb_ReadsUtilities.KButil_FASTQ_to_FASTA',
-            [params], self._service_ver, context)
+        return self._client.call_method('kb_ReadsUtilities.KButil_FASTQ_to_FASTA',
+                                        [params], self._service_ver, context)
 
     def KButil_Split_Reads(self, params, context=None):
         """
@@ -75,9 +74,8 @@ class kb_ReadsUtilities(object):
            parameter "report_name" of type "data_obj_name", parameter
            "report_ref" of type "data_obj_ref"
         """
-        return self._client.call_method(
-            'kb_ReadsUtilities.KButil_Split_Reads',
-            [params], self._service_ver, context)
+        return self._client.call_method('kb_ReadsUtilities.KButil_Split_Reads',
+                                        [params], self._service_ver, context)
 
     def KButil_Random_Subsample_Reads(self, params, context=None):
         """
@@ -101,9 +99,8 @@ class kb_ReadsUtilities(object):
            structure: parameter "report_name" of type "data_obj_name",
            parameter "report_ref" of type "data_obj_ref"
         """
-        return self._client.call_method(
-            'kb_ReadsUtilities.KButil_Random_Subsample_Reads',
-            [params], self._service_ver, context)
+        return self._client.call_method('kb_ReadsUtilities.KButil_Random_Subsample_Reads',
+                                        [params], self._service_ver, context)
 
     def KButil_Merge_ReadsSet_to_OneLibrary(self, params, context=None):
         """
@@ -125,9 +122,8 @@ class kb_ReadsUtilities(object):
            parameter "report_name" of type "data_obj_name", parameter
            "report_ref" of type "data_obj_ref"
         """
-        return self._client.call_method(
-            'kb_ReadsUtilities.KButil_Merge_ReadsSet_to_OneLibrary',
-            [params], self._service_ver, context)
+        return self._client.call_method('kb_ReadsUtilities.KButil_Merge_ReadsSet_to_OneLibrary',
+                                        [params], self._service_ver, context)
 
     def KButil_Merge_MultipleReadsLibs_to_OneLibrary(self, params, context=None):
         """
@@ -149,9 +145,8 @@ class kb_ReadsUtilities(object):
            structure: parameter "report_name" of type "data_obj_name",
            parameter "report_ref" of type "data_obj_ref"
         """
-        return self._client.call_method(
-            'kb_ReadsUtilities.KButil_Merge_MultipleReadsLibs_to_OneLibrary',
-            [params], self._service_ver, context)
+        return self._client.call_method('kb_ReadsUtilities.KButil_Merge_MultipleReadsLibs_to_OneLibrary',
+                                        [params], self._service_ver, context)
 
     def KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs(self, params, context=None):
         """
@@ -173,9 +168,8 @@ class kb_ReadsUtilities(object):
            structure: parameter "report_name" of type "data_obj_name",
            parameter "report_ref" of type "data_obj_ref"
         """
-        return self._client.call_method(
-            'kb_ReadsUtilities.KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs',
-            [params], self._service_ver, context)
+        return self._client.call_method('kb_ReadsUtilities.KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs',
+                                        [params], self._service_ver, context)
 
     def KButil_Translate_ReadsLibs_QualScores(self, params, context=None):
         """
@@ -196,9 +190,8 @@ class kb_ReadsUtilities(object):
            parameter "report_name" of type "data_obj_name", parameter
            "report_ref" of type "data_obj_ref"
         """
-        return self._client.call_method(
-            'kb_ReadsUtilities.KButil_Translate_ReadsLibs_QualScores',
-            [params], self._service_ver, context)
+        return self._client.call_method('kb_ReadsUtilities.KButil_Translate_ReadsLibs_QualScores',
+                                        [params], self._service_ver, context)
 
     def KButil_AddInsertLen_to_ReadsLibs(self, params, context=None):
         """
@@ -219,9 +212,8 @@ class kb_ReadsUtilities(object):
            -> structure: parameter "report_name" of type "data_obj_name",
            parameter "report_ref" of type "data_obj_ref"
         """
-        return self._client.call_method(
-            'kb_ReadsUtilities.KButil_AddInsertLen_to_ReadsLibs',
-            [params], self._service_ver, context)
+        return self._client.call_method('kb_ReadsUtilities.KButil_AddInsertLen_to_ReadsLibs',
+                                        [params], self._service_ver, context)
 
     def status(self, context=None):
         return self._client.call_method('kb_ReadsUtilities.status',

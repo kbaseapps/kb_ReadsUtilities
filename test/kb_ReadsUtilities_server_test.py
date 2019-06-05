@@ -10,10 +10,10 @@ from ConfigParser import ConfigParser
 from requests_toolbelt import MultipartEncoder
 from pprint import pprint
 
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from installed_clients.WorkspaceClient import Workspace as workspaceService
 from biokbase.AbstractHandle.Client import AbstractHandle as HandleService
 from kb_ReadsUtilities.kb_ReadsUtilitiesImpl import kb_ReadsUtilities
-from ReadsUtils.ReadsUtilsClient import ReadsUtils
+from installed_clients.ReadsUtilsClient import ReadsUtils
 
 
 class kb_ReadsUtilitiesTest(unittest.TestCase):

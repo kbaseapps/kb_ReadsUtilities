@@ -19,20 +19,19 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import generic_protein
-#from biokbase.workspace.client import Workspace as workspaceService                                                              
-from Workspace.WorkspaceClient import Workspace as workspaceService
-from requests_toolbelt import MultipartEncoder  # added                                                                           
+
+from installed_clients.WorkspaceClient import Workspace as workspaceService
+from requests_toolbelt import MultipartEncoder  # added
 from biokbase.AbstractHandle.Client import AbstractHandle as HandleService
 
-# SDK Utils                                                                                                                       
-from ReadsUtils.ReadsUtilsClient import ReadsUtils
-from SetAPI.SetAPIServiceClient import SetAPI
-from KBaseReport.KBaseReportClient import KBaseReport
+# SDK Utils
+from installed_clients.ReadsUtilsClient import ReadsUtils
+from installed_clients.SetAPIServiceClient import SetAPI
+from installed_clients.KBaseReportClient import KBaseReport
 
-# silence whining                                                                                                                 
+# silence whining
 import requests
 requests.packages.urllib3.disable_warnings()
-
 #END_HEADER
 
 
@@ -53,9 +52,9 @@ class kb_ReadsUtilities:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "1.0.2"
+    VERSION = "1.1.0"
     GIT_URL = "https://github.com/kbaseapps/kb_ReadsUtilities"
-    GIT_COMMIT_HASH = "b49e8181158c342d32178263a778a0fe9a8f7cd2"
+    GIT_COMMIT_HASH = "c19541fea4ac47b276b1158336c7b8468b4b66cc"
 
     #BEGIN_CLASS_HEADER
     workspaceURL = None
@@ -66,9 +65,14 @@ class kb_ReadsUtilities:
     scratch = None
 
 
-    # target is a list for collecting log messages                                                                                
+    def now_ISO(self):
+        now_timestamp = datetime.now()
+        now_secs_from_epoch = (now_timestamp - datetime(1970,1,1)).total_seconds()
+        now_timestamp_in_iso = datetime.fromtimestamp(int(now_secs_from_epoch)).strftime('%Y-%m-%d_%T')
+        return now_timestamp_in_iso
+
     def log(self, target, message):
-        # we should do something better here...                                                                                   
+        message = '['+self.now_ISO()+'] '+message
         if target is not None:
             target.append(message)
         print(message)
@@ -87,23 +91,23 @@ class kb_ReadsUtilities:
         pass
 
 
-    # Helper script borrowed from the transform service, logger removed                                                           
-    #                                                                                                                             
+    # Helper script borrowed from the transform service, logger removed
+    #
     def upload_file_to_shock(self,
-                             console,  # DEBUG                                                                                    
+                             console,  # DEBUG
                              shock_service_url = None,
                              filePath = None,
                              ssl_verify = True,
                              token = None):
-        """                                                                                                                       
-        Use HTTP multi-part POST to save a file to a SHOCK instance.                                                              
+        """
+        Use HTTP multi-part POST to save a file to a SHOCK instance.
         """
         self.log(console,"UPLOADING FILE "+filePath+" TO SHOCK")
 
         if token is None:
             raise Exception("Authentication token required!")
 
-        #build the header                                                                                                         
+        #build the header
         header = dict()
         header["Authorization"] = "Oauth {0}".format(token)
         if filePath is None:
@@ -113,7 +117,7 @@ class kb_ReadsUtilities:
         m = MultipartEncoder(fields={'upload': (os.path.split(filePath)[-1], dataFile)})
         header['Content-Type'] = m.content_type
 
-        #logger.info("Sending {0} to {1}".format(filePath,shock_service_url))                                                     
+        #logger.info("Sending {0} to {1}".format(filePath,shock_service_url))
         try:
             response = requests.post(shock_service_url + "/node", headers=header, data=m, allow_redirects=True, verify=ssl_verify)
             dataFile.close()
@@ -131,7 +135,7 @@ class kb_ReadsUtilities:
 
     def upload_SingleEndLibrary_to_shock_and_ws (self,
                                                  ctx,
-                                                 console,  # DEBUG                                                                
+                                                 console,  # DEBUG
                                                  workspace_name,
                                                  obj_name,
                                                  file_path,
@@ -140,18 +144,18 @@ class kb_ReadsUtilities:
 
         self.log(console,'UPLOADING FILE '+file_path+' TO '+workspace_name+'/'+obj_name)
 
-        # 1) upload files to shock                                                                                                
+        # 1) upload files to shock
         token = ctx['token']
         forward_shock_file = self.upload_file_to_shock(
-            console,  # DEBUG                                                                                                     
+            console,  # DEBUG
             shock_service_url = self.shockURL,
             filePath = file_path,
             token = token
             )
-        #pprint(forward_shock_file)                                                                                               
+        #pprint(forward_shock_file)
         self.log(console,'SHOCK UPLOAD DONE')
 
-        # 2) create handle                                                                                                        
+        # 2) create handle
         self.log(console,'GETTING HANDLE')
         hs = HandleService(url=self.handleURL, token=token)
         forward_handle = hs.persist_handle({
@@ -161,7 +165,7 @@ class kb_ReadsUtilities:
                                         'file_name': forward_shock_file['file']['name'],
                                         'remote_md5': forward_shock_file['file']['checksum']['md5']})
 
-        # 3) save to WS                                                                                                           
+        # 3) save to WS
         self.log(console,'SAVING TO WORKSPACE')
         single_end_library = {
             'lib': {
@@ -208,18 +212,11 @@ class kb_ReadsUtilities:
         self.handleURL = config['handle-service-url']
         self.serviceWizardURL = config['service-wizard-url']
 
-        #self.callbackURL = os.environ['SDK_CALLBACK_URL'] if os.environ['SDK_CALLBACK_URL'] != None else 'https://kbase.us/services/njs_wrapper'  # DEBUG                                                                                                         
         self.callbackURL = os.environ.get('SDK_CALLBACK_URL')
-#        if self.callbackURL == None:                                                                                             
-#            self.callbackURL = os.environ['SDK_CALLBACK_URL']                                                                    
         if self.callbackURL == None:
             raise ValueError ("SDK_CALLBACK_URL not set in environment")
 
         self.scratch = os.path.abspath(config['scratch'])
-        # HACK!! temporary hack for issue where megahit fails on mac because of silent named pipe error                           
-        #self.host_scratch = self.scratch                                                                                         
-        #self.scratch = os.path.join('/kb','module','local_scratch')                                                              
-        # end hack                                                                                                                
         if not os.path.exists(self.scratch):
             os.makedirs(self.scratch)
         #END_CONSTRUCTOR

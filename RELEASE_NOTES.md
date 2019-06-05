@@ -1,3 +1,7 @@
+### Version 1.1.0
+__Changes__
+- patched "bad status line" error with newer kb-sdk install of SDK_LOCAL clients
+
 ### Version 1.0.3
 __Changes__
 - added KBase paper citation in PLOS format
