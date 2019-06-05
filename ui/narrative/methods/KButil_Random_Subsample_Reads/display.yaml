@@ -3,7 +3,7 @@
 #
 name: Randomly Subsample Reads - v1.0.2
 tooltip: |
-    Split a Reads Library into a set of randomly subsampled Reads Libraries
+    Split a reads library into a set of randomly subsampled reads libraries.
 screenshots:
     - Randomly_Subsample_Reads.png
 
@@ -32,57 +32,51 @@ parameters :
         ui-name : |
             Description
         short-hint : |
-            Describe Purpose or Contents of Output ReadsSet
+            Describe the purpose or contents of the output ReadsSet.
         placeholder: |
             Enter Description
     input_ref:
         ui-name : |
-            Reads library
+            Reads Library
         short-hint : |
-            Reads Library Name here (SingleEndLibrary or PairedEndLibrary)
+            Enter the reads library name here (either SingleEndLibrary or PairedEndLibrary).
     output_name:
         ui-name : |
-            Output readsSet name
+            Output ReadsSet Name
         short-hint : |
-            Name for the Output ReadsSet
+            Enter the name for the output ReadsSet.
     split_num:
         ui-name : |
-            Sample number
+            Sample Number
         short-hint : |
-            Number of Sample Output Libraries
+            Enter the number of sample output libraries.
     reads_num:
         ui-name : |
-            Num reads
+            Number of Reads
         short-hint : |
-            Number of reads to put into each library sample
+            Enter the number of reads to put into each library sample.
     reads_perc:
         ui-name : |
-            or Perc reads (1-100)
+            or Percentage of Reads
         short-hint : |
-            Percentage of original reads library to put into each sample library
+            Enter the percentage of the original reads library (from 1-100) to put into each sample library.
     seed:
         ui-name : |
             Random Seed (optional)
         short-hint : |
-            Specify seed for Randomizer if you want repeatable results
+            Specify a seed for the randomizer if you want repeatable results.
 
 parameter-groups :
     subsample_fraction :
         ui-name: |
             Subsample Fraction
         short-hint : |
-            Either provide number of reads per sublibrary or percentage of original library (or just number of split libraries to capture all reads)
+            Provide either the number of reads per sublibrary, the percentage of original library, or just number of split libraries to capture all reads.
 
 description : |
-    <p>This App allows the user to split a <b><i>Reads Library</i></b> into a randomly subsampled <b><i>Reads Libraries</i></b>, organized into a <b><i>Reads Set</i></b>.</p>
-    <hr>
-    <p>written for KBase by <a href="mailto:DCChivian@lbl.gov">Dylan Chivian</a></p>
-    <hr>
-    <p>
-    <h3>Description</h3>
-    <b>Randomly Subsample Reads</b> allows a user to skim sequences from a larger Single End or Paired End Reads Library into one or more subsample libraries.  If the number of reads in each subsample library is used to specify the split of a Paired End Library, then the resulting libraries will contain half that number of pairs (e.g., selecting 1000 reads will create 500 pairs of reads).  These subsample libraries will not contain duplicates (with respect to the source reads, unless the source reads already had duplicates).  The number of sample libraries can be specified either by percentage of reads or by raw count and the combined samples cannot contain more than the total number of reads present in the source library.
-    </p>
+    <p>Randomly Subsample Reads allows users to split a reads library into a group of randomly subsampled reads libraries organized into a <b><i>Reads Set</i></b>. This App can be used for sampling a subset of your data for testing Apps. If the number of reads in each subsample library is used to specify the split of a paired-end library, then the resulting libraries will contain half that number of pairs (e.g., selecting 1000 reads will create 500 pairs of reads). These subsampled libraries will not contain duplicates (with respect to the source reads) unless the source reads already had duplicates. The number of sample libraries can be specified either by a percentage of reads or by a raw count, and the combined samples cannot contain more than the total number of reads present in the source library.</p>
 
+    <p><strong>Team members who developed &amp; deployed App in KBase:</strong> Dylan Chivian. For questions, please <a href=”http://kbase.us/contact-us/”>contact us</a>.</p>
 
 publications :
     -

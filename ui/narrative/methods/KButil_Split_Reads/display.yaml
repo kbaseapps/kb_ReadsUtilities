@@ -3,7 +3,7 @@
 #
 name: Split Reads - v1.0.1
 tooltip: |
-    Split a Reads Library into evenly sized Reads Libraries
+    Split a Reads Library into smaller, evenly sized Reads Libraries.
 screenshots:
     - Split_Reads.png
 
@@ -32,36 +32,41 @@ parameters :
         ui-name : |
             Description
         short-hint : |
-            Describe Purpose or Contents of Output ReadsSet
+            Describe the purpose or contents of the output ReadsSet.
         placeholder: |
             Enter Description
     input_ref:
         ui-name : |
-            Reads library
+            Reads Library
         short-hint : |
-            Reads Library Name here (SingleEndLibrary or PairedEndLibrary)
+            Choose the Reads Library to be split (either SingleEndLibrary or PairedEndLibrary).
     output_name:
         ui-name : |
             Output ReadsSet
         short-hint : |
-            Name for the Output ReadsSet
+            Specify a name for the output ReadsSet.
     split_num:
         ui-name : |
-            Split number
+            Split Number
         short-hint : |
-            Number of Split Outputs
+            Choose the number of split outputs.
 
 
 description : |
-    <p>This App allows the user to split a <b><i>Reads Library</i></b> into evenly sized <b><i>Reads Libraries</i></b>, organized into a <b><i>Reads Set</i></b>.</p>
-    <hr>
-    <p>written for KBase by <a href="mailto:DCChivian@lbl.gov">Dylan Chivian</a></p>
-    <hr>
-    <p>
-    <h3>Description</h3>
-    <b>Split Reads</b> allows a user to split sequences from a larger Single End or Paired End Reads Library into two or more evenly-sized libraries (may be off by one sequence if the split number does not evenly divide the number of source reads).  Read records are taken one-at-a-time in turn, so the resulting split libraries are taken evenly from the whole input library, not as uninterrupted chunks from the source.  The output split libraries will be organized into a corresponding ReadsSet object, named by the user.
+    <p>This App allows the user to split a <b><i>Reads Library</i></b> into evenly sized <b><i>Reads Libraries</i></b>, organized into a <b><i>Reads Set</i></b>. Smaller read libraries can be used for running faster tests and parameter discovery for Apps such as quality trimming, assemblers, read aligners, taxonomic and functional classifiers and profilers, and RNA-Seq Apps. Additionally, splitting a single large library into smaller non-overlapping libraries creates technical replicates that allow a researcher to perform replicate analyses in the case that they don’t have biological replicates.</p>
+
+    <p>All created sub-libraries are evenly-sized but may be off by one sequence if the split number does not evenly divide the number of source reads. In other words, all sequences in the source library will wind up in one of the sub-libraries. Read records are assigned one at a time in turn to the sub-libraries, so the resulting split libraries are taken evenly from the whole input library, not as uninterrupted chunks from the source. This means that if you split the source library into three sub-libraries the first, fourth, seventh (and so on) sequences in the source library will be placed in the first sub-library, the second, fifth, eighth (and so on) sequences will be placed in the second sub-library, and the third, sixth, ninth (and so on) sequences in the third sub-library.  Additionally, the output sub-libraries will be organized into a corresponding ReadsSet object, which is named by the user.</p>
+
+    <p><h3>Configuration</h3></p>
+    <ul>
+      <li><b>Reads Library:</b> This is the source Reads Library. It can be Single-End or Paired-End. PairedEndLibraries use the read ID to correlate the mated forward and reverse reads, and must have a mate pair for all records. If you are uncertain about whether or not this requirement ismet, you should run Trimmomatic or another App that will produce a PairedEndLibrary object that only contains mated pairs.</li>
+      <li><b>Description:</b> Describe the contents of the output ReadsSet.</li>
+      <li><b>Split Number:</b> This value should be based on the needs of your analysis and the size of the source Library. Obviously, larger libraries can be split more times and still produce reasonably-sized sub-libraries. Avoid producing exceptionally small sub-libraries as the analysis can suffer. Highly divergent technical replicate analysis can indicate this is a problem. The default value is <b>10</b>, but for some replicate analysis, the user may wish to use a value of <b>3</b> (depending on the expectations of the protocol).</li>
+      <li><b>Output Reads Set:</b> Sub-library objects are given names automatically based on the name of the source library. However, the user provides the name of the ReadsSet object that contains the sub-library objects.</li>
+    </ul>
     </p>
 
+    <p><strong>Team members who developed &amp; deployed App in KBase:</strong> Dylan Chivian. For questions, please <a href=”http://kbase.us/contact-us/”>contact us</a>.</p>
 
 publications :
     -
