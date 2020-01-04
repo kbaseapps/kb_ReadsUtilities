@@ -1,9 +1,9 @@
 #
 # define display information
 #
-name: Translate ReadsLibs Qual Scores - v1.0.1
+name: Translate Reads Libraries' Quality Scores - v1.0.1
 tooltip: |
-    Translate ReadsLibs from phred64 to phred33
+    Allows users to translate reads libraries' quality scores from phred64 to phred33.
 screenshots:
     - Translate_ReadsLib_QualScores.png
 
@@ -32,21 +32,14 @@ parameters :
         ui-name : |
             Input reads libraries
         short-hint : |
-            Reads Lib Names here (SingleEndLibrary or PairedEndLibrary, but not both)
+            Select the input reads libraries. Note that these can be SingleEndLibrary or PairedEndLibrary, but not both.
 
 description : |
-    <p>This App allows the user to Translate <b><i>Reads Libraries</i></b> Qual Scores from phred64 to phred33.</p>
-    <hr>
-    <p>written for KBase by <a href="mailto:DCChivian@lbl.gov">Dylan Chivian</a></p>
-    <hr>
-    <p>
-    <h3>Description</h3>
-    <b>Translate ReadsLibs Qual Scores</b> allows a user to alter FASTQ Single End or Paired End Reads Libraries to use phred33 Qual Scores.  For each input Reads Library that is translated, an output phred33 library object is created with the same name plus the extension '.phred33'.
-    </p>
-    <p>
-    Phred 33 is used for Sanger, 454, SRA, Illumina >= 1.8, so these files do not need to be converted to phred33.  Illumina <= 1.7 is phred64 and often needs to be converted to phred 33 to be processed correctly by modern bioinformatics tools.
-    </p>
+    <p><b>Translate Reads Libraries’ Quality Scores</b> allows users to alter FASTQ single-end or paired-end reads libraries to use phred33 quality scores. For each input reads library that is translated, an output phred33 library object is created with the same name plus the extension '.phred33'.</p>
 
+    <p>Phred33 is used for Sanger, 454, SRA, Illumina >= 1.8, so these files do not need to be converted to phred33. Illumina <= 1.7 is phred64, and often needs to be converted to phred33 to be processed correctly by modern bioinformatics tools.</p>
+
+    <strong>Team members who developed &amp; deployed algorithm in KBase:</strong> Dylan Chivian. For questions, please <a href=”http://kbase.us/contact-us/”>contact us</a>.</p>
 
 publications :
     -

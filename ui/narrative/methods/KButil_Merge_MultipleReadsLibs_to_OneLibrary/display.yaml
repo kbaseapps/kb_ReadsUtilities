@@ -1,9 +1,9 @@
 #
 # define display information
 #
-name: Merge Multiple ReadsLibs to One ReadsLib - v1.0.1
+name: Merge Reads Libraries - v1.0.1
 tooltip: |
-    Merge Multiple Reads Libraries into One Reads Library
+    Merge multiple Reads Libraries and/or ReadsSets into one Reads Library object.
 screenshots:
     - Merge_Multiple_ReadsLibs_to_OneLibrary.png
 
@@ -32,30 +32,32 @@ parameters :
         ui-name : |
             Description
         short-hint : |
-            Describe Purpose or Contents of Output Reads Library
+            Describe the purpose or contents of the output Reads Library data object.
         placeholder: |
             Enter Description
     input_refs:
         ui-name : |
-            Input reads libraries
+            Input Reads Libraries
         short-hint : |
-            Reads Lib Names here (SingleEndLibrary or PairedEndLibrary, but not both)
+            Enter the names of the Reads Libraries and/or ReadsSets. Note that it will take as input a SingleEndLibrary or PairedEndLibrary object, but not both.
     output_name:
         ui-name : |
-            Output reads library
+            Output Reads Library
         short-hint : |
-            Name for the Output Reads Library
+            The name for the generated output Reads Library object.
 
 description : |
-    <p>This App allows the user to merge multiple <b><i>Reads Libraries</i></b> into one <b><i>Reads Library</i></b>.</p>
-    <hr>
-    <p>written for KBase by <a href="mailto:DCChivian@lbl.gov">Dylan Chivian</a></p>
-    <hr>
-    <p>
-    <h3>Description</h3>
-    <b>Merge Multiple ReadsLibs to One ReadsLib</b> allows a user to combine multiple reads sets and/or reads libraries into a single library (if merging a single Reads Set into one Library, use <b>Merge ReadsSet to One Library</b> App instead).  This can be necessary for certain Apps that cannot accept more than one reads library, such as for performing co-assemblies.  This App does not account for repeat IDs and will include all reads even if they are identical IDs or sequence.  Input reads libraries must all be <b></i>Paired End Libraries</i></b> or <b><i>Single End Libraries</i></b> to allow for merging into one output library.
-    </p>
+    <p>This App allows the user to merge multiple Reads Libraries and/or Reads Sets into one Reads Library object. This can be necessary for certain Apps that cannot accept more than one reads library, such as for performing co-assemblies. This App does not account for repeat read IDs and will include duplicate reads from different libraries even if they possess identical IDs or sequence. Input reads libraries <u>must</u> all be either PairedEndLibraries or SingleEndLibraries (<u>but not both</u>) to allow for merging into a single output library type.</p>
 
+    <p><h3>Configuration</h3></p>
+    <ul>
+      <li>Input reads libraries: Enter the Reads Libraries and/or ReadsSets that you want to combine into a single Reads Library object here. To add each library or set object, simply click the &quot;+&quot; button and select the library or set you wish to add. At a minimum, you must have at least two libraries or one set (containing two or more libraries). Every library in the input to merge must be of the same type, either all Paired-End or Single-End. It is left to the user to ensure that the sequencing type and protocol used in generating each input library is consistent, as this may affect the performance of Apps that use the merged library as input.</li>
+      <li>Description: Describe the contents of the output combined Reads Library.</li>
+      <li>Output reads library: The name of the output merged Reads Library object.</li>
+      </ul>
+      </p>
+
+      <p><strong>Team members who developed &amp; deployed App in KBase:</strong> Dylan Chivian. For questions, please <a href=”http://kbase.us/contact-us/”>contact us</a>.</p>
 
 publications :
     -
