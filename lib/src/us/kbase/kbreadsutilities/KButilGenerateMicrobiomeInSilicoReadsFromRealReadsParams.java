@@ -16,7 +16,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * <pre>
  * KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads()
  * **
- * **  Method for random subsampling of reads library combined with overlay of configured genomes
+ * <    **  Method for random subsampling of reads library combined with overlay of configured genomes
  * </pre>
  * 
  */

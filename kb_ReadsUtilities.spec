@@ -188,7 +188,7 @@ module kb_ReadsUtilities {
 
     /* KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads()
     **
-    **  Method for random subsampling of reads library combined with overlay of configured genomes
+<    **  Method for random subsampling of reads library combined with overlay of configured genomes
     */
     typedef structure {
         workspace_name workspace_name;
@@ -211,6 +211,33 @@ module kb_ReadsUtilities {
     } KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_Output;
 
     funcdef KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads (KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_Params params)  returns (KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_Output) authentication required;
+
+    
+    /* KButil_Fractionate_Reads_by_Contigs()
+    **
+    **  Split reads library into two based on whether they match contigs
+    */
+    typedef structure {
+        workspace_name workspace_name;
+	data_obj_ref   input_reads_ref;     /* ReadsLibrary */
+	data_obj_ref   input_assembly_ref;  /* Assembly, AMA, or Genome */
+        data_obj_name  output_name;         /* BaseName for Reads */
+	string         fractionate_mode;
+	/*int            seed;*/
+    } KButil_Fractionate_Reads_by_Contigs_Params;
+
+    typedef structure {
+	data_obj_name report_name;
+	data_obj_ref  report_ref;
+        int    source_reads_count;
+        int    positive_reads_count;
+        int    negative_reads_count;
+        int    source_reads_sum_length;
+        int    positive_reads_sum_length;
+        int    negative_reads_sum_length;
+    } KButil_Fractionate_Reads_by_Contigs_Output;
+
+    funcdef KButil_Fractionate_Reads_by_Contigs (KButil_Fractionate_Reads_by_Contigs_Params params)  returns (KButil_Fractionate_Reads_by_Contigs_Output) authentication required;
 
 
 };

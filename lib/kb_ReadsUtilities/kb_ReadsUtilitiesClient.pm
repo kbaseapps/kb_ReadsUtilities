@@ -1076,6 +1076,124 @@ KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_Output is a reference 
     }
 }
  
+
+
+=head2 KButil_Fractionate_Reads_by_Contigs
+
+  $return = $obj->KButil_Fractionate_Reads_by_Contigs($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a kb_ReadsUtilities.KButil_Fractionate_Reads_by_Contigs_Params
+$return is a kb_ReadsUtilities.KButil_Fractionate_Reads_by_Contigs_Output
+KButil_Fractionate_Reads_by_Contigs_Params is a reference to a hash where the following keys are defined:
+	workspace_name has a value which is a kb_ReadsUtilities.workspace_name
+	input_reads_ref has a value which is a kb_ReadsUtilities.data_obj_ref
+	input_assembly_ref has a value which is a kb_ReadsUtilities.data_obj_ref
+	output_name has a value which is a kb_ReadsUtilities.data_obj_name
+	fractionate_mode has a value which is a string
+workspace_name is a string
+data_obj_ref is a string
+data_obj_name is a string
+KButil_Fractionate_Reads_by_Contigs_Output is a reference to a hash where the following keys are defined:
+	report_name has a value which is a kb_ReadsUtilities.data_obj_name
+	report_ref has a value which is a kb_ReadsUtilities.data_obj_ref
+	source_reads_count has a value which is an int
+	positive_reads_count has a value which is an int
+	negative_reads_count has a value which is an int
+	source_reads_sum_length has a value which is an int
+	positive_reads_sum_length has a value which is an int
+	negative_reads_sum_length has a value which is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a kb_ReadsUtilities.KButil_Fractionate_Reads_by_Contigs_Params
+$return is a kb_ReadsUtilities.KButil_Fractionate_Reads_by_Contigs_Output
+KButil_Fractionate_Reads_by_Contigs_Params is a reference to a hash where the following keys are defined:
+	workspace_name has a value which is a kb_ReadsUtilities.workspace_name
+	input_reads_ref has a value which is a kb_ReadsUtilities.data_obj_ref
+	input_assembly_ref has a value which is a kb_ReadsUtilities.data_obj_ref
+	output_name has a value which is a kb_ReadsUtilities.data_obj_name
+	fractionate_mode has a value which is a string
+workspace_name is a string
+data_obj_ref is a string
+data_obj_name is a string
+KButil_Fractionate_Reads_by_Contigs_Output is a reference to a hash where the following keys are defined:
+	report_name has a value which is a kb_ReadsUtilities.data_obj_name
+	report_ref has a value which is a kb_ReadsUtilities.data_obj_ref
+	source_reads_count has a value which is an int
+	positive_reads_count has a value which is an int
+	negative_reads_count has a value which is an int
+	source_reads_sum_length has a value which is an int
+	positive_reads_sum_length has a value which is an int
+	negative_reads_sum_length has a value which is an int
+
+
+=end text
+
+=item Description
+
+
+
+=back
+
+=cut
+
+ sub KButil_Fractionate_Reads_by_Contigs
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function KButil_Fractionate_Reads_by_Contigs (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to KButil_Fractionate_Reads_by_Contigs:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'KButil_Fractionate_Reads_by_Contigs');
+	}
+    }
+
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "kb_ReadsUtilities.KButil_Fractionate_Reads_by_Contigs",
+	    params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'KButil_Fractionate_Reads_by_Contigs',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method KButil_Fractionate_Reads_by_Contigs",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'KButil_Fractionate_Reads_by_Contigs',
+				       );
+    }
+}
+ 
   
 sub status
 {
@@ -1119,16 +1237,16 @@ sub version {
             Bio::KBase::Exceptions::JSONRPC->throw(
                 error => $result->error_message,
                 code => $result->content->{code},
-                method_name => 'KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads',
+                method_name => 'KButil_Fractionate_Reads_by_Contigs',
             );
         } else {
             return wantarray ? @{$result->result} : $result->result->[0];
         }
     } else {
         Bio::KBase::Exceptions::HTTP->throw(
-            error => "Error invoking method KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads",
+            error => "Error invoking method KButil_Fractionate_Reads_by_Contigs",
             status_line => $self->{client}->status_line,
-            method_name => 'KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads',
+            method_name => 'KButil_Fractionate_Reads_by_Contigs',
         );
     }
 }
@@ -1950,7 +2068,7 @@ report_ref has a value which is a kb_ReadsUtilities.data_obj_ref
 
 KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads()
 **
-**  Method for random subsampling of reads library combined with overlay of configured genomes
+<    **  Method for random subsampling of reads library combined with overlay of configured genomes
 
 
 =item Definition
@@ -2021,6 +2139,95 @@ report_ref has a value which is a kb_ReadsUtilities.data_obj_ref
 a reference to a hash where the following keys are defined:
 report_name has a value which is a kb_ReadsUtilities.data_obj_name
 report_ref has a value which is a kb_ReadsUtilities.data_obj_ref
+
+
+=end text
+
+=back
+
+
+
+=head2 KButil_Fractionate_Reads_by_Contigs_Params
+
+=over 4
+
+
+
+=item Description
+
+KButil_Fractionate_Reads_by_Contigs()
+**
+**  Split reads library into two based on whether they match contigs
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+workspace_name has a value which is a kb_ReadsUtilities.workspace_name
+input_reads_ref has a value which is a kb_ReadsUtilities.data_obj_ref
+input_assembly_ref has a value which is a kb_ReadsUtilities.data_obj_ref
+output_name has a value which is a kb_ReadsUtilities.data_obj_name
+fractionate_mode has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+workspace_name has a value which is a kb_ReadsUtilities.workspace_name
+input_reads_ref has a value which is a kb_ReadsUtilities.data_obj_ref
+input_assembly_ref has a value which is a kb_ReadsUtilities.data_obj_ref
+output_name has a value which is a kb_ReadsUtilities.data_obj_name
+fractionate_mode has a value which is a string
+
+
+=end text
+
+=back
+
+
+
+=head2 KButil_Fractionate_Reads_by_Contigs_Output
+
+=over 4
+
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+report_name has a value which is a kb_ReadsUtilities.data_obj_name
+report_ref has a value which is a kb_ReadsUtilities.data_obj_ref
+source_reads_count has a value which is an int
+positive_reads_count has a value which is an int
+negative_reads_count has a value which is an int
+source_reads_sum_length has a value which is an int
+positive_reads_sum_length has a value which is an int
+negative_reads_sum_length has a value which is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+report_name has a value which is a kb_ReadsUtilities.data_obj_name
+report_ref has a value which is a kb_ReadsUtilities.data_obj_ref
+source_reads_count has a value which is an int
+positive_reads_count has a value which is an int
+negative_reads_count has a value which is an int
+source_reads_sum_length has a value which is an int
+positive_reads_sum_length has a value which is an int
+negative_reads_sum_length has a value which is an int
 
 
 =end text

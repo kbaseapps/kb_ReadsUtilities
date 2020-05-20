@@ -317,6 +317,23 @@ public class KbReadsUtilitiesClient {
         return res.get(0);
     }
 
+    /**
+     * <p>Original spec-file function name: KButil_Fractionate_Reads_by_Contigs</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.kbreadsutilities.KButilFractionateReadsByContigsParams KButilFractionateReadsByContigsParams} (original type "KButil_Fractionate_Reads_by_Contigs_Params")
+     * @return   instance of type {@link us.kbase.kbreadsutilities.KButilFractionateReadsByContigsOutput KButilFractionateReadsByContigsOutput} (original type "KButil_Fractionate_Reads_by_Contigs_Output")
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public KButilFractionateReadsByContigsOutput kButilFractionateReadsByContigs(KButilFractionateReadsByContigsParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<KButilFractionateReadsByContigsOutput>> retType = new TypeReference<List<KButilFractionateReadsByContigsOutput>>() {};
+        List<KButilFractionateReadsByContigsOutput> res = caller.jsonrpcCall("kb_ReadsUtilities.KButil_Fractionate_Reads_by_Contigs", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
     public Map<String, Object> status(RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         TypeReference<List<Map<String, Object>>> retType = new TypeReference<List<Map<String, Object>>>() {};

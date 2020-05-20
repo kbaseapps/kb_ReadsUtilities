@@ -55,9 +55,9 @@ class kb_ReadsUtilities:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "1.2.0"
+    VERSION = "1.2.1"
     GIT_URL = "https://github.com/dcchivian/kb_ReadsUtilities"
-    GIT_COMMIT_HASH = "96c0c578f3700a35d607d03ff702a2005fac8eea"
+    GIT_COMMIT_HASH = "8c2ec3c17d5dc1659037df439681cb2f86d1bbe4"
 
     #BEGIN_CLASS_HEADER
     workspaceURL = None
@@ -1319,11 +1319,15 @@ class kb_ReadsUtilities:
             
             # Determine random membership in each sublibrary
             self.log (console, "GETTING RANDOM SUBSAMPLES")  # DEBUG
-
             for i,read_id in enumerate(random.sample (paired_ids_list, reads_per_lib * params['subsample_fraction']['split_num'])):
-                lib_i = i % params['subsample_fraction']['split_num']
-                paired_lib_i[read_id] = lib_i
-
+                if read_id not in paired_lib_i:
+                    lib_i = i % params['subsample_fraction']['split_num']
+                    paired_lib_i[read_id] = lib_i
+                else:
+                    raise ValueError ("repeated random sample for read id "+read_id)
+            for read_id in paired_ids_list:
+                if read_id not in paired_lib_i:
+                    raise ValueError ("failed to assign output lib for read id "+read_id)
 
             # split fwd paired
             self.log (console, "WRITING FWD SPLIT PAIRED")  # DEBUG
@@ -1549,8 +1553,14 @@ class kb_ReadsUtilities:
             self.log (console, "GETTING RANDOM SUBSAMPLES")  # DEBUG
 
             for i,read_id in enumerate(random.sample (paired_ids_list, reads_per_lib * params['subsample_fraction']['split_num'])):
-                lib_i = i % params['subsample_fraction']['split_num']
-                paired_lib_i[read_id] = lib_i
+                if read_id not in paired_lib_i:
+                    lib_i = i % params['subsample_fraction']['split_num']
+                    paired_lib_i[read_id] = lib_i
+                else:
+                    raise ValueError ("repeated random sample for read id "+read_id)
+            for read_id in paired_ids_list:
+                if read_id not in paired_lib_i:
+                    raise ValueError ("failed to assign output lib for read id "+read_id)
 
 
             # set up for file io
@@ -3486,8 +3496,8 @@ class kb_ReadsUtilities:
         """
         :param params: instance of type
            "KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_Params"
-           (KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads() ** **
-           Method for random subsampling of reads library combined with
+           (KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads() ** < 
+           **  Method for random subsampling of reads library combined with
            overlay of configured genomes) -> structure: parameter
            "workspace_name" of type "workspace_name" (** The workspace object
            refs are of form: ** **    objects = ws.get_objects([{'ref':
@@ -4000,9 +4010,15 @@ class kb_ReadsUtilities:
             for lib_i in range(int(params['subsample_fraction']['split_num'])):
                 read_ids_by_lib.append([])
             for i,read_id in enumerate(random.sample (paired_ids_list, reads_per_lib * int(params['subsample_fraction']['split_num']))):
-                lib_i = i % int(params['subsample_fraction']['split_num'])
-                paired_lib_i[read_id] = lib_i
-                read_ids_by_lib[lib_i].append(read_id)
+                if read_id not in paired_lib_i:
+                    lib_i = i % int(params['subsample_fraction']['split_num'])
+                    paired_lib_i[read_id] = lib_i
+                    read_ids_by_lib[lib_i].append(read_id)
+                else:
+                    raise ValueError ("repeated random sample for read id "+read_id)
+            for read_id in paired_ids_list:
+                if read_id not in paired_lib_i:
+                    raise ValueError ("failed to assign output lib for read id "+read_id)
 
             # Determine random source genome for each read
             self.log (console, "GETTING RANDOM GENOME SOURCE ASSIGNMENT FOR READS")  # DEBUG
@@ -4034,35 +4050,48 @@ class kb_ReadsUtilities:
                             raise ValueError ("badly formatted rec line: '"+line+"'")
                         if last_read_id != None:
                             if capture_type_paired:
-                                lib_i = paired_lib_i[last_read_id]
+                                try:
+                                    lib_i = paired_lib_i[last_read_id]
+                                except:
+                                    raise ValueError ("Failed to find lib for read rec "+last_read_id)
 
                                 #if paired_cnt % recs_beep_n == 0:
                                 #    self.log(console,"OLD FWD READ:")  # DEBUG
                                 #    self.log(console,"\n".join(rec_buf)) # DEBUG
 
-                                # replace read with source genome sequence
-                                source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
-                                
-                                (fwd_insilico_position[last_read_id], insilico_read_rec_buf) = self.overlay_source_genome_seq (
-                                    read_rec=rec_buf, 
-                                    source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
-                                    contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                                try:
+                                    # replace read with source genome sequence
+                                    source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                                except:
+                                    raise ValueError ("Failed to find source genome for read rec "+last_read_id)
+
+                                try:
+                                    (fwd_insilico_position[last_read_id], insilico_read_rec_buf) = self.overlay_source_genome_seq (
+                                        read_rec=rec_buf, 
+                                        source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                                        contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
                                     
-                                    lib_type='PE',
-                                    read_dir='fwd',
-                                    fwd_insilico_pos=None,
-                                    pe_orientation=params['pe_orientation'],
-                                    pe_insert_len=int(params['pe_insert_len']),
-                                    add_errors_by_qual_freq=True
-                                )
+                                        lib_type='PE',
+                                        read_dir='fwd',
+                                        fwd_insilico_pos=None,
+                                        pe_orientation=params['pe_orientation'],
+                                        pe_insert_len=int(params['pe_insert_len']),
+                                        add_errors_by_qual_freq=True
+                                    )
+                                except:
+                                    raise ValueError ("Failed to transform read rec "+last_read_id+"\n"+"".join(rec_buf))
 
                                 #if paired_cnt % recs_beep_n == 0:
                                 #    self.log(console,"NEW FWD READ:")  # DEBUG
                                 #    self.log(console,"\n".join(insilico_read_rec_buf)) # DEBUG
 
-                                # write rec to file
-                                paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+                                try:
+                                    # write rec to file
+                                    paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+                                except:
+                                    raise ValueError ("Failed to write read rec "+last_read_id+"\n"+"".join(insilico_read_rec_buf))
 
+                                    
                                 paired_cnt += 1
                                 total_paired_reads_by_set[lib_i] += 1
                                 if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
@@ -4085,23 +4114,34 @@ class kb_ReadsUtilities:
                 # last rec
                 if len(rec_buf) > 0:
                     if capture_type_paired:
-                        lib_i = paired_lib_i[last_read_id]
+                        try:
+                            lib_i = paired_lib_i[last_read_id]
+                        except:
+                            raise ValueError ("Failed to find lib for read rec "+last_read_id)
 
-                        # replace read with source genome sequence
-                        source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
-                        (fwd_insilico_position[last_read_id], insilico_read_rec_buf) = self.overlay_source_genome_seq (read_rec=rec_buf, 
-                            source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
-                            contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
-                            lib_type='PE',
-                            read_dir='fwd',
-                            fwd_insilico_pos=None,
-                            pe_orientation=params['pe_orientation'],
-                            pe_insert_len=int(params['pe_insert_len']),
-                            add_errors_by_qual_freq=True
-                        )
-                                
-                        # write rec to file
-                        paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+                        try:
+                            # replace read with source genome sequence
+                            source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                        except:
+                            raise ValueError ("Failed to find source genome for read rec "+last_read_id)
+                        try:
+                            (fwd_insilico_position[last_read_id], insilico_read_rec_buf) = self.overlay_source_genome_seq (read_rec=rec_buf, 
+                                source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                                contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                                lib_type='PE',
+                                read_dir='fwd',
+                                fwd_insilico_pos=None,
+                                pe_orientation=params['pe_orientation'],
+                                pe_insert_len=int(params['pe_insert_len']),
+                                add_errors_by_qual_freq=True
+                            )
+                        except:
+                            raise ValueError ("Failed to transform read rec "+last_read_id+"\n"+"".join(rec_buf))
+                        try:
+                            # write rec to file
+                            paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+                        except:
+                            raise ValueError ("Failed to write read rec "+last_read_id+"\n"+"".join(insilico_read_rec_buf))
 
                         paired_cnt += 1
                         if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
@@ -4139,31 +4179,44 @@ class kb_ReadsUtilities:
                             raise ValueError ("badly formatted rec line: '"+line+"'")
                         if last_read_id != None:
                             if capture_type_paired:
-                                lib_i = paired_lib_i[last_read_id]
+                                try:
+                                    lib_i = paired_lib_i[last_read_id]
+                                except:
+                                    raise ValueError ("Failed to find lib for read rec "+last_read_id)
 
                                 #if paired_cnt % recs_beep_n == 0:
                                 #    self.log(console,"OLD REV READ:")  # DEBUG
                                 #    self.log(console,"\n".join(rec_buf)) # DEBUG
 
-                                # replace read with source genome sequence
-                                source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
-                                (unused, insilico_read_rec_buf) = self.overlay_source_genome_seq (read_rec=rec_buf, 
-                                    source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
-                                    contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
-                                    lib_type='PE',
-                                    read_dir='rev',
-                                    fwd_insilico_pos=fwd_insilico_position[last_read_id],
-                                    pe_orientation=params['pe_orientation'],
-                                    pe_insert_len=int(params['pe_insert_len']),
-                                    add_errors_by_qual_freq=True
-                                )
+                                try:
+                                    # replace read with source genome sequence
+                                    source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                                except:
+                                    raise ValueError ("Failed to find source genome for read rec "+last_read_id)
+
+                                try:
+                                    (unused, insilico_read_rec_buf) = self.overlay_source_genome_seq (read_rec=rec_buf, 
+                                        source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                                        contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                                        lib_type='PE',
+                                        read_dir='rev',
+                                        fwd_insilico_pos=fwd_insilico_position[last_read_id],
+                                        pe_orientation=params['pe_orientation'],
+                                        pe_insert_len=int(params['pe_insert_len']),
+                                        add_errors_by_qual_freq=True
+                                    )
+                                except:
+                                    raise ValueError ("Failed to transform read rec "+last_read_id+"\n"+"".join(rec_buf))
 
                                 #if paired_cnt % recs_beep_n == 0:
                                 #    self.log(console,"NEW REV READ:")  # DEBUG
                                 #    self.log(console,"\n".join(insilico_read_rec_buf)) # DEBUG
 
-                                # write rec to file
-                                paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+                                try:
+                                    # write rec to file
+                                    paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+                                except:
+                                    raise ValueError ("Failed to write read rec "+last_read_id+"\n"+"".join(insilico_read_rec_buf))
 
                                 paired_cnt += 1
                                 if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
@@ -4186,23 +4239,36 @@ class kb_ReadsUtilities:
                 # last rec
                 if len(rec_buf) > 0:
                     if capture_type_paired:
-                        lib_i = paired_lib_i[last_read_id]
+                        try:
+                            lib_i = paired_lib_i[last_read_id]
+                        except:
+                            raise ValueError ("Failed to find lib for read rec "+last_read_id)
 
-                        # replace read with source genome sequence
-                        source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
-                        (unused, insilico_read_rec_buf) = self.overlay_source_genome_seq (read_rec=rec_buf, 
-                            source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
-                            contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
-                            lib_type='PE',
-                            read_dir='rev',
-                            fwd_insilico_pos=fwd_insilico_position[last_read_id],
-                            pe_orientation=params['pe_orientation'],
-                            pe_insert_len=int(params['pe_insert_len']),
-                            add_errors_by_qual_freq=True
-                        )
-                        
-                        # write rec to file
-                        paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+                        try:
+                            # replace read with source genome sequence
+                            source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                        except:
+                            raise ValueError ("Failed to find source genome for read rec "+last_read_id)
+
+                        try:
+                            (unused, insilico_read_rec_buf) = self.overlay_source_genome_seq (read_rec=rec_buf, 
+                                source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                                contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                                lib_type='PE',
+                                read_dir='rev',
+                                fwd_insilico_pos=fwd_insilico_position[last_read_id],
+                                pe_orientation=params['pe_orientation'],
+                                pe_insert_len=int(params['pe_insert_len']),
+                                add_errors_by_qual_freq=True
+                            )
+                        except:
+                            raise ValueError ("Failed to transform read rec "+last_read_id+"\n"+"".join(rec_buf))
+
+                        try:
+                            # write rec to file
+                            paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+                        except:
+                            raise ValueError ("Failed to write read rec "+last_read_id+"\n"+"".join(insilico_read_rec_buf))
 
                         paired_cnt += 1
                         if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
@@ -4230,7 +4296,7 @@ class kb_ReadsUtilities:
 
             # upload paired reads
             #
-            self.log (console, "UPLOAD PAIRED READS LIBS")  # DEBUG
+            self.log (console, "UPLOAD In Silico PAIRED READS LIBS")  # DEBUG
             paired_obj_refs = []
             for lib_i in range(params['subsample_fraction']['split_num']):
                 output_fwd_paired_file_path = output_fwd_paired_file_path_base+"-"+str(lib_i)+".fastq"
@@ -4323,9 +4389,15 @@ class kb_ReadsUtilities:
             for lib_i in range(int(params['subsample_fraction']['split_num'])):
                 read_ids_by_lib.append([])
             for i,read_id in enumerate(random.sample (paired_ids_list, reads_per_lib * params['subsample_fraction']['split_num'])):
-                lib_i = i % params['subsample_fraction']['split_num']
-                paired_lib_i[read_id] = lib_i
-                read_ids_by_lib[lib_i].append(read_id)
+                if read_id not in paired_lib_i:
+                    lib_i = i % int(params['subsample_fraction']['split_num'])
+                    paired_lib_i[read_id] = lib_i
+                    read_ids_by_lib[lib_i].append(read_id)
+                else:
+                    raise ValueError ("repeated random sample for read id "+read_id)
+            for read_id in paired_ids_list:
+                if read_id not in paired_lib_i:
+                    raise ValueError ("failed to assign output lib for read id "+read_id)
 
             # Determine random source genome for each read
             self.log (console, "GETTING RANDOM GENOME SOURCE ASSIGNMENT FOR READS")  # DEBUG
@@ -4358,14 +4430,23 @@ class kb_ReadsUtilities:
                         if last_read_id != None:
                             try:
                                 lib_i = paired_lib_i[last_read_id]
+                            except:
+                                raise ValueError ("Failed to find lib for read rec "+last_read_id)
 
-                                #if paired_cnt % recs_beep_n == 0:
-                                #    self.log(console,"OLD FWD READ:")  # DEBUG
-                                #    self.log(console,"\n".join(rec_buf)) # DEBUG
+                            # DEBUG
+                            print ("LIB_I: "+str(lib_i)+" LAST_READ_ID: "+last_read_id)
 
+                            #if paired_cnt % recs_beep_n == 0:
+                            #    self.log(console,"OLD FWD READ:")  # DEBUG
+                            #    self.log(console,"\n".join(rec_buf)) # DEBUG
+
+                            try:
                                 # replace read with source genome sequence
                                 source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
-                                
+                            except:
+                                raise ValueError ("Failed to find source genome for read rec "+last_read_id)
+
+                            try:
                                 (unused, insilico_read_rec_buf) = self.overlay_source_genome_seq (
                                     read_rec=rec_buf, 
                                     source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
@@ -4377,21 +4458,25 @@ class kb_ReadsUtilities:
                                     pe_insert_len=None,
                                     add_errors_by_qual_freq=True
                                 )
+                            except:
+                                raise ValueError ("Failed to transform read rec "+last_read_id+"\n"+"".join(rec_buf))
 
-                                #if paired_cnt % recs_beep_n == 0:
-                                #    self.log(console,"NEW FWD READ:")  # DEBUG
-                                #    self.log(console,"\n".join(insilico_read_rec_buf)) # DEBUG
+                            #if paired_cnt % recs_beep_n == 0:
+                            #    self.log(console,"NEW FWD READ:")  # DEBUG
+                            #    self.log(console,"\n".join(insilico_read_rec_buf)) # DEBUG
 
+                            try:
                                 # write rec to file
                                 paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)                                
-
-                                paired_cnt += 1
-                                total_paired_reads_by_set[lib_i] += 1
                             except:
-                                pass
+                                raise ValueError ("Failed to write read rec "+last_read_id+"\n"+"".join(insilico_read_rec_buf))
+                                
+                            paired_cnt += 1
+                            total_paired_reads_by_set[lib_i] += 1
                             if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
                                 self.log(console,"\t"+str(paired_cnt)+" recs processed")
                             rec_buf = []
+
                         read_id = line.rstrip('\n')
                         read_id = re.sub ("[ \t]+.*$", "", read_id)
                         read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
@@ -4402,10 +4487,19 @@ class kb_ReadsUtilities:
                     if last_read_id != None:
                         try:
                             lib_i = paired_lib_i[last_read_id]
-                            
+                        except:
+                            raise ValueError ("Failed to find lib for read rec "+last_read_id)
+
+                        # DEBUG
+                        print ("LIB_I: "+str(lib_i)+" LAST_READ_ID: "+last_read_id)
+
+                        try:
                             # replace read with source genome sequence
                             source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
-                                
+                        except:
+                            raise ValueError ("Failed to find source genome for read rec "+last_read_id)
+
+                        try:
                             (unused, insilico_read_rec_buf) = self.overlay_source_genome_seq (
                                 read_rec=rec_buf, 
                                 source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
@@ -4417,18 +4511,21 @@ class kb_ReadsUtilities:
                                 pe_insert_len=None,
                                 add_errors_by_qual_freq=True
                             )
-                            
+                        except:
+                            raise ValueError ("Failed to transform read rec "+last_read_id+"\n"+"".join(rec_buf))
+
+                        try:
                             # write rec to file
                             paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)                                
-                            
-                            total_paired_reads_by_set[lib_i] += 1
-                            paired_output_reads_file_handles[lib_i].writelines(rec_buf)
-                            paired_cnt += 1
                         except:
-                            pass
-                    if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
-                        self.log(console,"\t"+str(paired_cnt)+" recs processed")
+                            raise ValueError ("Failed to write read rec "+last_read_id+"\n"+"".join(insilico_read_rec_buf))
+                            
+                        paired_cnt += 1
+                        total_paired_reads_by_set[lib_i] += 1
+                        if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
+                            self.log(console,"\t"+str(paired_cnt)+" recs processed")
                     rec_buf = []
+                    last_read_id = None
 
             for output_handle in paired_output_reads_file_handles:
                 output_handle.close()
@@ -4443,7 +4540,7 @@ class kb_ReadsUtilities:
 
             # upload reads
             #
-            self.log (console, "UPLOADING SPLIT SINGLE END READS")  # DEBUG
+            self.log (console, "UPLOAD In Silico SINGLE END READS")  # DEBUG
             paired_obj_refs = []
             for lib_i in range(params['subsample_fraction']['split_num']):
                 output_fwd_paired_file_path = output_fwd_paired_file_path_base+"-"+str(lib_i)+".fastq"
@@ -4508,6 +4605,46 @@ class kb_ReadsUtilities:
         # At some point might do deeper type checking...
         if not isinstance(returnVal, dict):
             raise ValueError('Method KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads return value ' +
+                             'returnVal is not type dict as required.')
+        # return the results
+        return [returnVal]
+
+    def KButil_Fractionate_Reads_by_Contigs(self, ctx, params):
+        """
+        :param params: instance of type
+           "KButil_Fractionate_Reads_by_Contigs_Params"
+           (KButil_Fractionate_Reads_by_Contigs() ** **  Split reads library
+           into two based on whether they match contigs) -> structure:
+           parameter "workspace_name" of type "workspace_name" (** The
+           workspace object refs are of form: ** **    objects =
+           ws.get_objects([{'ref':
+           params['workspace_id']+'/'+params['obj_name']}]) ** ** "ref" means
+           the entire name combining the workspace id and the object name **
+           "id" is a numerical identifier of the workspace or object, and
+           should just be used for workspace ** "name" is a string identifier
+           of a workspace or object.  This is received from Narrative.),
+           parameter "input_reads_ref" of type "data_obj_ref", parameter
+           "input_assembly_ref" of type "data_obj_ref", parameter
+           "output_name" of type "data_obj_name", parameter
+           "fractionate_mode" of String
+        :returns: instance of type
+           "KButil_Fractionate_Reads_by_Contigs_Output" -> structure:
+           parameter "report_name" of type "data_obj_name", parameter
+           "report_ref" of type "data_obj_ref", parameter
+           "source_reads_count" of Long, parameter "positive_reads_count" of
+           Long, parameter "negative_reads_count" of Long, parameter
+           "source_reads_sum_length" of Long, parameter
+           "positive_reads_sum_length" of Long, parameter
+           "negative_reads_sum_length" of Long
+        """
+        # ctx is the context object
+        # return variables are: returnVal
+        #BEGIN KButil_Fractionate_Reads_by_Contigs
+        #END KButil_Fractionate_Reads_by_Contigs
+
+        # At some point might do deeper type checking...
+        if not isinstance(returnVal, dict):
+            raise ValueError('Method KButil_Fractionate_Reads_by_Contigs return value ' +
                              'returnVal is not type dict as required.')
         # return the results
         return [returnVal]

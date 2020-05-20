@@ -1,6 +1,7 @@
-### Version 1.2.0
+### Version 1.2.1
 __Changes__
-- added generate_microbiome_in_silico_reads_from_real_reads() method
+- added fractionate_reads_by_contigs() App
+- set Merge_ReadsSet_to_OneLibrary() to inactive
 
 ### Version 1.1.0
 __Changes__
