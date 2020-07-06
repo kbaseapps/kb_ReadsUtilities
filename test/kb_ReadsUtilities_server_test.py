@@ -14,6 +14,8 @@ from installed_clients.WorkspaceClient import Workspace as workspaceService
 from biokbase.AbstractHandle.Client import AbstractHandle as HandleService
 from kb_ReadsUtilities.kb_ReadsUtilitiesImpl import kb_ReadsUtilities
 from installed_clients.ReadsUtilsClient import ReadsUtils
+from installed_clients.GenomeFileUtilClient import GenomeFileUtil
+from installed_clients.AssemblyUtilClient import AssemblyUtil
 
 
 class kb_ReadsUtilitiesTest(unittest.TestCase):
@@ -79,6 +81,116 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
         return self.__class__.ctx
 
 
+    # call this method to get the WS object info of a Genome
+    #   (will upload the example data if this is the first time the method is called during tests)
+    def getGenomeInfo(self, genome_basename, lib_i=0):
+        if hasattr(self.__class__, 'genomeInfo_list'):
+            try:
+                info = self.__class__.genomeInfo_list[lib_i]
+                name = self.__class__.genomeName_list[lib_i]
+                if info != None:
+                    if name != genome_basename:
+                        self.__class__.genomeInfo_list[lib_i] = None
+                        self.__class__.genomeName_list[lib_i] = None
+                    else:
+                        return info
+            except:
+                pass
+
+        # 1) transform genbank to kbase genome object and upload to ws
+        shared_dir = "/kb/module/work/tmp"
+        genome_data_file = 'data/genomes/'+genome_basename+'.gbff'
+        genome_file = os.path.join(shared_dir, os.path.basename(genome_data_file))
+        shutil.copy(genome_data_file, genome_file)
+
+        SERVICE_VER = 'release'
+        #SERVICE_VER = 'dev'
+        GFU = GenomeFileUtil(os.environ['SDK_CALLBACK_URL'],
+                             token=self.__class__.token,
+                             service_ver=SERVICE_VER
+                         )
+        print ("UPLOADING genome: "+genome_basename+" to WORKSPACE "+self.getWsName()+" ...")
+        genome_upload_result = GFU.genbank_to_genome({'file': {'path': genome_file },
+                                                      'workspace_name': self.getWsName(),
+                                                      'genome_name': genome_basename
+                                                  })
+#                                                  })[0]
+        pprint(genome_upload_result)
+        genome_ref = genome_upload_result['genome_ref']
+        new_obj_info = self.getWsClient().get_object_info_new({'objects': [{'ref': genome_ref}]})[0]
+
+        # 2) store it
+        if not hasattr(self.__class__, 'genomeInfo_list'):
+            self.__class__.genomeInfo_list = []
+            self.__class__.genomeName_list = []
+        for i in range(lib_i+1):
+            try:
+                assigned = self.__class__.genomeInfo_list[i]
+            except:
+                self.__class__.genomeInfo_list.append(None)
+                self.__class__.genomeName_list.append(None)
+
+        self.__class__.genomeInfo_list[lib_i] = new_obj_info
+        self.__class__.genomeName_list[lib_i] = genome_basename
+        return new_obj_info
+
+
+    # call this method to get the WS object info of an Assembly
+    #   (will upload the example data if this is the first time the method is called during tests)
+    def getAssemblyInfo(self, assembly_basename, lib_i=0):
+        if hasattr(self.__class__, 'genomeInfo_list'):
+            try:
+                info = self.__class__.assemblyInfo_list[lib_i]
+                name = self.__class__.assemblyName_list[lib_i]
+                if info != None:
+                    if name != assembly_basename:
+                        self.__class__.assemblyInfo_list[lib_i] = None
+                        self.__class__.assemblyName_list[lib_i] = None
+                    else:
+                        return info
+            except:
+                pass
+
+        # 1) upload assembly to ws
+        shared_dir = "/kb/module/work/tmp"
+        assembly_data_file = 'data/assemblies/'+assembly_basename
+        assembly_file = os.path.join(shared_dir, os.path.basename(assembly_data_file))
+        shutil.copy(assembly_data_file, assembly_file)
+
+        SERVICE_VER = 'release'
+        #SERVICE_VER = 'dev'
+        # upload test data
+        try:
+            auClient = AssemblyUtil(os.environ['SDK_CALLBACK_URL'],
+                                    token=self.__class__.token,
+                                    service_ver=SERVICE_VER)
+        except Exception as e:
+            raise ValueError('Unable to instantiate auClient with callbackURL: '+ os.environ['SDK_CALLBACK_URL'] +' ERROR: ' + str(e))
+
+        print ("UPLOADING assembly: "+assembly_basename+" to WORKSPACE "+self.getWsName()+" ...")
+        ass_ref = auClient.save_assembly_from_fasta({
+            'file': {'path': assembly_file},
+            'workspace_name': self.getWsName(),
+            'assembly_name': assembly_basename+'.'+'Assembly'
+        })
+        new_obj_info = self.getWsClient().get_object_info_new({'objects': [{'ref': ass_ref}]})[0]
+
+        # 2) store it
+        if not hasattr(self.__class__, 'assemblyInfo_list'):
+            self.__class__.assemblyInfo_list = []
+            self.__class__.assemblyName_list = []
+        for i in range(lib_i+1):
+            try:
+                assigned = self.__class__.assemblyInfo_list[i]
+            except:
+                self.__class__.assemblyInfo_list.append(None)
+                self.__class__.assemblyName_list.append(None)
+
+        self.__class__.assemblyInfo_list[lib_i] = new_obj_info
+        self.__class__.assemblyName_list[lib_i] = assembly_basename
+        return new_obj_info
+
+
     # call this method to get the WS object info of a Single End Library (will
     # upload the example data if this is the first time the method is called during tests)
     def getSingleEndLibInfo(self, read_lib_basename, lib_i=0):
@@ -142,20 +254,30 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
                 pass
 
         # 1) upload files to shock
+        ru_params = dict()
         shared_dir = "/kb/module/work/tmp"
-        forward_data_file = 'data/'+read_lib_basename+'.fwd.fq'
+        interleaved = 1
+        forward_data_file = 'data/'+read_lib_basename
+        if not os.path.exists(forward_data_file):
+            forward_data_file = 'data/'+read_lib_basename+'.fwd.fq'
+        if not os.path.exists(forward_data_file):
+            raise ValueError ("unable to find reads lib "+read_lib_basename)
         forward_file = os.path.join(shared_dir, os.path.basename(forward_data_file))
         shutil.copy(forward_data_file, forward_file)
+        ru_params['fwd_file'] = forward_file
         reverse_data_file = 'data/'+read_lib_basename+'.rev.fq'
-        reverse_file = os.path.join(shared_dir, os.path.basename(reverse_data_file))
-        shutil.copy(reverse_data_file, reverse_file)
+        if os.path.exists(reverse_data_file):
+            interleaved = 0
+            reverse_file = os.path.join(shared_dir, os.path.basename(reverse_data_file))
+            shutil.copy(reverse_data_file, reverse_file)
+            ru_params['rev_file'] = reverse_file
+        ru_params['sequencing_tech'] = 'artificial reads'
+        ru_params['interleaved'] = interleaved
+        ru_params['wsname'] = self.getWsName()
+        ru_params['name'] = 'test-'+str(lib_i)+'.pe.reads'
 
         ru = ReadsUtils(os.environ['SDK_CALLBACK_URL'])
-        paired_end_ref = ru.upload_reads({'fwd_file': forward_file, 'rev_file': reverse_file,
-                                          'sequencing_tech': 'artificial reads',
-                                          'interleaved': 0, 'wsname': self.getWsName(),
-                                          'name': 'test-'+str(lib_i)+'.pe.reads'})['obj_ref']
-
+        paired_end_ref = ru.upload_reads(ru_params)['obj_ref']
         new_obj_info = self.getWsClient().get_object_info_new({'objects': [{'ref': paired_end_ref}]})[0]
 
         # store it
@@ -550,78 +672,6 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
         pass
 
 
-    #### test_KButil_Merge_ReadsSet_to_OneLibrary_01_PE()
-    ##
-    # HIDE @unittest.skip("skipped test_KButil_Merge_ReadsSet_to_OneLibrary_01_PE()")  # uncomment to skip
-    def test_KButil_Merge_ReadsSet_to_OneLibrary_01_PE (self):
-        method = 'KButil_Merge_ReadsSet_to_OneLibrary_01_PE'
-        msg = "RUNNING: "+method+"()"
-        print ("\n\n"+msg)
-        print ("="*len(msg)+"\n\n")
-
-        # figure out where the test data lives
-        pe_lib_set_info = self.getPairedEndLib_SetInfo(['test_quick','small_2'])
-        pprint(pe_lib_set_info)
-
-        # run method
-        base_output_name = method+'_output'
-        params = {
-            'workspace_name': self.getWsName(),
-            'input_ref': str(pe_lib_set_info[6])+'/'+str(pe_lib_set_info[0]),
-            'output_name': base_output_name,
-            'desc':'test merge'
-        }
-        result = self.getImpl().KButil_Merge_ReadsSet_to_OneLibrary(self.getContext(),params)
-        print('RESULT:')
-        pprint(result)
-
-        # check the output
-        output_name = base_output_name
-        output_type = 'KBaseFile.PairedEndLibrary'
-        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':self.getWsName() + '/' + output_name}]})
-        self.assertEqual(len(info_list),1)
-        readsLib_info = info_list[0]
-        self.assertEqual(readsLib_info[1],output_name)
-        self.assertEqual(readsLib_info[2].split('-')[0],output_type)
-        pass
-
-
-    #### test_KButil_Merge_ReadsSet_to_OneLibrary_01_SE()
-    ##
-    # HIDE @unittest.skip("skipped test_KButil_Merge_ReadsSet_to_OneLibrary_01_SE()")  # uncomment to skip
-    def test_KButil_Merge_ReadsSet_to_OneLibrary_01_SE (self):
-        method = 'KButil_Merge_ReadsSet_to_OneLibrary_01_SE'
-        msg = "RUNNING: "+method+"()"
-        print ("\n\n"+msg)
-        print ("="*len(msg)+"\n\n")
-
-        # figure out where the test data lives
-        se_lib_set_info = self.getSingleEndLib_SetInfo(['test_quick','small_2'])
-        pprint(se_lib_set_info)
-
-        # run method
-        base_output_name = method+'_output'
-        params = {
-            'workspace_name': self.getWsName(),
-            'input_ref': str(se_lib_set_info[6])+'/'+str(se_lib_set_info[0]),
-            'output_name': base_output_name,
-            'desc':'test merge'
-        }
-        result = self.getImpl().KButil_Merge_ReadsSet_to_OneLibrary(self.getContext(),params)
-        print('RESULT:')
-        pprint(result)
-
-        # check the output
-        output_name = base_output_name
-        output_type = 'KBaseFile.SingleEndLibrary'
-        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':self.getWsName() + '/' + output_name}]})
-        self.assertEqual(len(info_list),1)
-        readsLib_info = info_list[0]
-        self.assertEqual(readsLib_info[1],output_name)
-        self.assertEqual(readsLib_info[2].split('-')[0],output_type)
-        pass
-
-
     #### test_KButil_Merge_MultipleReadsLibs_to_OneLibrary_01_PE()
     ##
     # HIDE @unittest.skip("skipped test_Merge_MultipleReadsLibs_to_OneLibrary_01_PE()")  # uncomment to skip
@@ -880,4 +930,263 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
             pprint(output_obj)
             self.assertEqual(output_obj['insert_size_mean'],450.0)
             self.assertEqual(output_obj['insert_size_std_dev'],15.0)
+        pass
+
+
+    #### test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_PE():
+    ##
+    @unittest.skip("skipped test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_PE()")  # uncomment to skip
+    def test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_PE (self):
+        method = 'KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_PE'
+        msg = "RUNNING: "+method+"()"
+        print ("\n\n"+msg)
+        print ("="*len(msg)+"\n\n")
+
+        # get paired end lib input
+        pe_lib_info = self.getPairedEndLibInfo('small_2')
+        pprint(pe_lib_info)
+
+        # get genome set input
+        genome_name_0 = 'GCF_000287295.1_ASM28729v1_genomic'
+        genome_name_1 = 'GCF_000306885.1_ASM30688v1_genomic'
+        genome_name_2 = 'GCF_001439985.1_wTPRE_1.0_genomic'
+        genome_name_3 = 'GCF_000022285.1_ASM2228v1_genomic'
+
+        genomeInfo_0 = self.getGenomeInfo(genome_name_0, 0)
+        genomeInfo_1 = self.getGenomeInfo(genome_name_1, 1)
+        genomeInfo_2 = self.getGenomeInfo(genome_name_2, 2)
+        genomeInfo_3 = self.getGenomeInfo(genome_name_3, 3)
+
+        genome_ref_0 = self.getWsName() + '/' + str(genomeInfo_0[0]) + '/' + str(genomeInfo_0[4])
+        genome_ref_1 = self.getWsName() + '/' + str(genomeInfo_1[0]) + '/' + str(genomeInfo_1[4])
+        genome_ref_2 = self.getWsName() + '/' + str(genomeInfo_2[0]) + '/' + str(genomeInfo_2[4])
+        genome_ref_3 = self.getWsName() + '/' + str(genomeInfo_3[0]) + '/' + str(genomeInfo_3[4])
+
+        # GenomeSet
+        genomeSet_obj = { 'description': 'test genomeSet',
+                          'elements': { 'genome_0': { 'ref': genome_ref_0 },
+                                        'genome_1': { 'ref': genome_ref_1 },
+                                        'genome_2': { 'ref': genome_ref_2 },
+                                        'genome_3': { 'ref': genome_ref_3 }
+                                      }
+                        }            
+        provenance = [{}]
+        genomeSet_info = self.getWsClient().save_objects({
+            'workspace': self.getWsName(), 
+            'objects': [
+                {
+                    'type': 'KBaseSearch.GenomeSet',
+                    'data': genomeSet_obj,
+                    'name': 'test_genomeSet',
+                    'meta': {},
+                    'provenance': provenance
+                }
+            ]})[0]
+
+        [OBJID_I, NAME_I, TYPE_I, SAVE_DATE_I, VERSION_I, SAVED_BY_I, WSID_I, WORKSPACE_I, CHSUM_I, SIZE_I, META_I] = range(11)  # object_info tuple
+        genomeSet_ref = str(genomeSet_info[WSID_I])+'/'+str(genomeSet_info[OBJID_I])+'/'+str(genomeSet_info[VERSION_I])
+
+
+        # run method
+        split_num = 4
+        reads_num = 2500
+        base_output_name = method+'_output'
+        params = {
+            'workspace_name': self.getWsName(),
+            'input_genomeSet_ref': genomeSet_ref,
+            'genome_abundances': "\n".join([genome_name_0+"\t"+str(60.0), 
+                                            genome_name_1+"\t"+str(20.0)
+                                        ]),
+            'input_reads_ref': str(pe_lib_info[6])+'/'+str(pe_lib_info[0]),
+            'subsample_fraction': {'split_num': split_num,
+                                   'reads_num': reads_num
+                               },
+            'output_name': base_output_name,
+            'desc':'test random subsample Paired End',
+            'genome_length_bias': 1,
+            'pe_insert_len': 450,
+            'pe_orientation': 'IN-IN',
+            'seed': 1
+        }
+        result = self.getImpl().KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads(self.getContext(),params)
+        print('RESULT:')
+        pprint(result)
+
+        # check the output
+        output_name = base_output_name+'_paired-0'
+        output_type = 'KBaseFile.PairedEndLibrary'
+        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':pe_lib_info[7] + '/' + output_name}]})
+        self.assertEqual(len(info_list),1)
+        readsLib_info = info_list[0]
+        self.assertEqual(readsLib_info[1],output_name)
+        self.assertEqual(readsLib_info[2].split('-')[0],output_type)
+
+        output_name = base_output_name+'_paired-'+str(split_num-1)
+        output_type = 'KBaseFile.PairedEndLibrary'
+        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':pe_lib_info[7] + '/' + output_name}]})
+        self.assertEqual(len(info_list),1)
+        readsLib_info = info_list[0]
+        self.assertEqual(readsLib_info[1],output_name)
+        self.assertEqual(readsLib_info[2].split('-')[0],output_type)
+        pass
+
+
+    #### test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE():
+    ##
+    @unittest.skip("skipped test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE()")  # uncomment to skip
+    def test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE (self):
+        method = 'KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE'
+        msg = "RUNNING: "+method+"()"
+        print ("\n\n"+msg)
+        print ("="*len(msg)+"\n\n")
+
+        # get single end lib input
+        se_lib_info = self.getSingleEndLibInfo('small_2')
+        pprint(se_lib_info)
+
+        # get genome set input
+        genome_name_0 = 'GCF_000287295.1_ASM28729v1_genomic'
+        genome_name_1 = 'GCF_000306885.1_ASM30688v1_genomic'
+        genome_name_2 = 'GCF_001439985.1_wTPRE_1.0_genomic'
+        genome_name_3 = 'GCF_000022285.1_ASM2228v1_genomic'
+
+        genomeInfo_0 = self.getGenomeInfo(genome_name_0, 0)
+        genomeInfo_1 = self.getGenomeInfo(genome_name_1, 1)
+        genomeInfo_2 = self.getGenomeInfo(genome_name_2, 2)
+        genomeInfo_3 = self.getGenomeInfo(genome_name_3, 3)
+
+        genome_ref_0 = self.getWsName() + '/' + str(genomeInfo_0[0]) + '/' + str(genomeInfo_0[4])
+        genome_ref_1 = self.getWsName() + '/' + str(genomeInfo_1[0]) + '/' + str(genomeInfo_1[4])
+        genome_ref_2 = self.getWsName() + '/' + str(genomeInfo_2[0]) + '/' + str(genomeInfo_2[4])
+        genome_ref_3 = self.getWsName() + '/' + str(genomeInfo_3[0]) + '/' + str(genomeInfo_3[4])
+
+        # GenomeSet
+        genomeSet_obj = { 'description': 'test genomeSet',
+                          'elements': { 'genome_0': { 'ref': genome_ref_0 },
+                                        'genome_1': { 'ref': genome_ref_1 },
+                                        'genome_2': { 'ref': genome_ref_2 },
+                                        'genome_3': { 'ref': genome_ref_3 }
+                                      }
+                        }            
+        provenance = [{}]
+        genomeSet_info = self.getWsClient().save_objects({
+            'workspace': self.getWsName(), 
+            'objects': [
+                {
+                    'type': 'KBaseSearch.GenomeSet',
+                    'data': genomeSet_obj,
+                    'name': 'test_genomeSet',
+                    'meta': {},
+                    'provenance': provenance
+                }
+            ]})[0]
+
+        [OBJID_I, NAME_I, TYPE_I, SAVE_DATE_I, VERSION_I, SAVED_BY_I, WSID_I, WORKSPACE_I, CHSUM_I, SIZE_I, META_I] = range(11)  # object_info tuple
+        genomeSet_ref = str(genomeSet_info[WSID_I])+'/'+str(genomeSet_info[OBJID_I])+'/'+str(genomeSet_info[VERSION_I])
+
+
+        # run method
+        split_num = 4
+        reads_num = 2500
+        base_output_name = method+'_output'
+        params = {
+            'workspace_name': self.getWsName(),
+            'input_genomeSet_ref': genomeSet_ref,
+            'genome_abundances': "\n".join([genome_name_0+"\t"+str(60.0), 
+                                            genome_name_1+"\t"+str(20.0)
+                                        ]),
+            'input_reads_ref': str(se_lib_info[6])+'/'+str(se_lib_info[0]),
+            'subsample_fraction': {'split_num': split_num,
+                                   'reads_num': reads_num
+                               },
+            'output_name': base_output_name,
+            'desc':'test random subsample SingleEnd',
+            'genome_length_bias': 1,
+            'pe_insert_len': 450,
+            'pe_orientation': 'IN-IN',
+            'seed': 1
+        }
+        result = self.getImpl().KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads(self.getContext(),params)
+        print('RESULT:')
+        pprint(result)
+
+        # check the output
+        output_name = base_output_name+'-0'
+        output_type = 'KBaseFile.SingleEndLibrary'
+        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':se_lib_info[7] + '/' + output_name}]})
+        self.assertEqual(len(info_list),1)
+        readsLib_info = info_list[0]
+        self.assertEqual(readsLib_info[1],output_name)
+        self.assertEqual(readsLib_info[2].split('-')[0],output_type)
+
+        output_name = base_output_name+'-'+str(split_num-1)
+        output_type = 'KBaseFile.SingleEndLibrary'
+        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':se_lib_info[7] + '/' + output_name}]})
+        self.assertEqual(len(info_list),1)
+        readsLib_info = info_list[0]
+        self.assertEqual(readsLib_info[1],output_name)
+        self.assertEqual(readsLib_info[2].split('-')[0],output_type)
+        pass
+
+
+    #### test_KButil_Fractionate_Reads_by_Contigs_01_PE():
+    ##
+    @unittest.skip("skipped test_KButil_Fractionate_Reads_by_Contigs_01_PE()")  # uncomment to skip
+    def test_KButil_Fractionate_Reads_by_Contigs_01_PE (self):
+        method = 'KButil_Fractionate_Reads_by_Contigs_01_PE'
+        msg = "RUNNING: "+method+"()"
+        print ("\n\n"+msg)
+        print ("="*len(msg)+"\n\n")
+
+        # figure out where the test data lives
+        pe_lib_info = self.getPairedEndLibInfo('seven_species_nonuniform_10K.PE_reads_paired-0.fq')
+        pprint(pe_lib_info)
+
+        assembly_info = self.getAssemblyInfo('Thermodesulfo_trim.SPAdes.contigs.fa.gz')
+        pprint(assembly_info)
+
+        # Object Info Contents
+        # 0 - obj_id objid
+        # 1 - obj_name name
+        # 2 - type_string type
+        # 3 - timestamp save_date
+        # 4 - int version
+        # 5 - username saved_by
+        # 6 - ws_id wsid
+        # 7 - ws_name workspace
+        # 8 - string chsum
+        # 9 - int size
+        # 10 - usermeta meta
+
+
+        # run method
+        split_num = 2
+        base_output_name = method+'_output'
+        params = {
+            'workspace_name': self.getWsName(),
+            'input_reads_ref': str(pe_lib_info[6])+'/'+str(pe_lib_info[0]),
+            'inout_assembly_ref': str(assembly_info[6])+'/'+str(assembly_info[0]),
+            'output_name': base_output_name,
+            'fractionate_mode':'both'
+        }
+        result = self.getImpl().KButil_Fractionate_Reads_by_Contigs(self.getContext(),params)
+        print('RESULT:')
+        pprint(result)
+
+        # check the output
+        output_name = base_output_name+'-negative_fraction'
+        output_type = 'KBaseFile.PairedEndLibrary'
+        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':pe_lib_info[7] + '/' + output_name}]})
+        self.assertEqual(len(info_list),1)
+        readsLib_info = info_list[0]
+        self.assertEqual(readsLib_info[1],output_name)
+        self.assertEqual(readsLib_info[2].split('-')[0],output_type)
+
+        output_name = base_output_name+'-positive_fraction'
+        output_type = 'KBaseFile.PairedEndLibrary'
+        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':pe_lib_info[7] + '/' + output_name}]})
+        self.assertEqual(len(info_list),1)
+        readsLib_info = info_list[0]
+        self.assertEqual(readsLib_info[1],output_name)
+        self.assertEqual(readsLib_info[2].split('-')[0],output_type)
         pass

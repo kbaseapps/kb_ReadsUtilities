@@ -1,0 +1,129 @@
+{
+    "ver": "1.2.1",
+    "authors": [
+        "dylan"
+    ],
+    "contact": "http://kbase.us/contact-us/",
+    "visible": true,
+    "categories": ["inactive","util","reads"],
+    "widgets": {
+        "input": null,
+        "output": "kbaseReportView"
+    },
+    "parameters": [ 
+        {
+            "id": "input_reads_ref",
+            "optional": false,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "" ],
+            "field_type": "text",
+            "text_options": {
+                "valid_ws_types": [ "KBaseFile.PairedEndLibrary" ]
+            }
+        },
+        {
+            "id": "input_assembly_ref",
+            "optional": false,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "" ],
+            "field_type": "text",
+            "text_options": {
+                "valid_ws_types": [ "KBaseGenomeAnnotations.Assembly","KBaseMetagenomes.AnnotatedMetagenomeAssembly","KBaseGenomes.Genome" ]
+            }
+        },
+        {
+            "id": "output_name",
+            "optional": false,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "" ],
+            "field_type": "text",
+            "text_options": {
+                "valid_ws_types": [ "KBaseFile.PairedEndLibrary" ],
+		"is_output_name": true
+            }
+        },
+        {
+            "id": "fractionate_mode",
+            "optional": false,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "neg" ],
+            "field_type": "dropdown",
+            "dropdown_options": {
+                "options": [
+		    {
+			"value": "both",
+			"display": "Both (split into absent and present)",
+			"id": "fractionate_mode-both",
+			"ui-name": "fractionate_mode-both"
+		    },
+		    {
+			"value": "neg",
+			"display": "Negative (absent)",
+			"id": "fractionate_mode-neg",
+			"ui-name": "fractionate_mode-neg"
+		    },
+		    {
+			"value": "pos",
+			"display": "Positive (present)",
+			"id": "fractionate_mode-pos",
+			"ui-name": "fractionate_mode-pos"
+		    }
+		]
+            }
+        }
+    ],
+    "behavior": {
+        "service-mapping": {
+            "url": "",
+            "name": "kb_ReadsUtilities",
+            "method": "KButil_Fractionate_Reads_by_Contigs",
+            "input_mapping": [
+                {
+                    "narrative_system_variable": "workspace",
+                    "target_property": "workspace_name"
+                },
+                {
+                    "input_parameter": "input_reads_ref",
+                    "target_property": "input_reads_ref",
+		    "target_type_transform": "resolved-ref"
+                },
+                {
+                    "input_parameter": "input_assembly_ref",
+                    "target_property": "input_assembly_ref",
+		    "target_type_transform": "resolved-ref"
+                },
+                {
+                    "input_parameter": "output_name",
+                    "target_property": "output_name"
+                },
+                {
+                    "input_parameter": "fractionate_mode",
+                    "target_property": "fractionate_mode"
+                }
+            ],
+            "output_mapping": [
+                {
+                    "narrative_system_variable": "workspace",
+                    "target_property": "workspace_name"
+                },
+                {
+                    "service_method_output_path": [0, "report_name"],
+                    "target_property": "report_name"
+                },
+                {
+                    "service_method_output_path": [0, "report_ref"],
+                    "target_property": "report_ref"
+                },
+                {
+		    "constant_value": "5",
+                    "target_property": "report_window_line_height"
+                }
+            ]
+        }
+    },
+    "job_id_output_field": "docker"
+}

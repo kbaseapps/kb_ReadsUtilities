@@ -1,3 +1,8 @@
+### Version 1.2.1
+__Changes__
+- set Merge_ReadsSet_to_OneLibrary() to inactive
+- changed Merge_MultipleReadsLibs_to_OneLibrary() to use interleaved FASTQs for PE libs
+
 ### Version 1.1.0
 __Changes__
 - patched "bad status line" error with newer kb-sdk install of SDK_LOCAL clients

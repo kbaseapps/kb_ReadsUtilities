@@ -370,6 +370,14 @@ class Application(object):
                              name='kb_ReadsUtilities.KButil_AddInsertLen_to_ReadsLibs',
                              types=[dict])
         self.method_authentication['kb_ReadsUtilities.KButil_AddInsertLen_to_ReadsLibs'] = 'required'  # noqa
+        self.rpc_service.add(impl_kb_ReadsUtilities.KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads,
+                             name='kb_ReadsUtilities.KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads',
+                             types=[dict])
+        self.method_authentication['kb_ReadsUtilities.KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads'] = 'required'  # noqa
+        self.rpc_service.add(impl_kb_ReadsUtilities.KButil_Fractionate_Reads_by_Contigs,
+                             name='kb_ReadsUtilities.KButil_Fractionate_Reads_by_Contigs',
+                             types=[dict])
+        self.method_authentication['kb_ReadsUtilities.KButil_Fractionate_Reads_by_Contigs'] = 'required'  # noqa
         self.rpc_service.add(impl_kb_ReadsUtilities.status,
                              name='kb_ReadsUtilities.status',
                              types=[dict])

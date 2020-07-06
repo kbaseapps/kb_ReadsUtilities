@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime
 from pprint import pprint, pformat
 import numpy as np
+import math
 import gzip
 import random
 
@@ -26,6 +27,8 @@ from biokbase.AbstractHandle.Client import AbstractHandle as HandleService
 
 # SDK Utils
 from installed_clients.ReadsUtilsClient import ReadsUtils
+from installed_clients.DataFileUtilClient import DataFileUtil
+from installed_clients.AssemblyUtilClient import AssemblyUtil
 from installed_clients.SetAPIServiceClient import SetAPI
 from installed_clients.KBaseReportClient import KBaseReport
 
@@ -52,9 +55,9 @@ class kb_ReadsUtilities:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "1.1.0"
+    VERSION = "1.2.1"
     GIT_URL = "https://github.com/kbaseapps/kb_ReadsUtilities"
-    GIT_COMMIT_HASH = "c19541fea4ac47b276b1158336c7b8468b4b66cc"
+    GIT_COMMIT_HASH = "293562e3d32cc566158b732058579aa40c7a6183"
 
     #BEGIN_CLASS_HEADER
     workspaceURL = None
@@ -78,17 +81,191 @@ class kb_ReadsUtilities:
         print(message)
         sys.stdout.flush()
 
-    def get_single_end_read_library(self, ws_data, ws_info, forward):
-        pass
 
-    def get_feature_set_seqs(self, ws_data, ws_info):
-        pass
+    def reverse_complement (self,seq):
+        rev_seq = ''
+        complement = {
+            'A': 'T',
+            'T': 'A',
+            'G': 'C',
+            'C': 'G',
+            'N': 'N'
+        }
+        for c in seq[::-1]:
+            if not complement.get(c):
+                raise ValueError ("unknown character '"+c+"' in seq '"+seq+"'")
+            rev_seq += complement[c]
 
-    def get_genome_feature_seqs(self, ws_data, ws_info):
-        pass
+        return rev_seq
 
-    def get_genome_set_feature_seqs(self, ws_data, ws_info):
-        pass
+    def seq_call_with_error(self,c=None, qual=None, qual_type='phred33'):
+        if c == 'N': return c
+
+        if not c or not qual:
+            raise ValueError ("missing param for seq_call_with_error()")
+
+        def qual33(qual64): return chr(ord(qual64)-31)
+
+        def error_prob(qual33):
+            # P = 10^-Q/10
+            # Q = -10*log10(P)
+            Q = ord(qual33)-33
+            P = math.pow(10,-Q/10.0)
+            return P
+
+        base = ['A', 'T', 'G', 'C']
+
+        if qual_type == 'phred64':
+            qual = qual33(qual)
+        elif qual_type != 'phred33':
+            raise ValueError ("seq_call_with_error() can only handle phred33 and phred64")
+
+        if random.uniform(0.0,1.0) <= error_prob(qual):
+            #print("adding error to call.  QUAL: "+str(qual)+" prob: "+str(error_prob(qual))+" orig_base: "+c)  # DEBUG
+            c = base[random.randint(0,3)]
+            #print("new base: "+c)  # DEBUG
+        return c
+
+
+    # replace read with source genome sequence
+    def overlay_source_genome_seq (self,
+                                   read_rec=None,
+                                   source_genome_buf=None,
+                                   contig_mapping=None,
+                                   lib_type='PE',  # 'PE/SE'
+                                   read_dir='fwd',  # 'fwd/rev'
+                                   fwd_insilico_pos=None,  # [contig_i,strand(+/-),beg_pos]
+                                   pe_orientation='IN-IN',  # 'IN-IN' only at this time
+                                   pe_insert_len=None,  # typically 450: fwd+gap+rev = 150+150+150
+                                   add_errors_by_qual_freq=True):
+
+        [POS_CONTIG_I, POS_STRAND_I, POS_BEG_I] = range(3)
+        [READ_HEADER_LINE_I, READ_SEQ_LINE_I, READ_SPACER_LINE_I, READ_QUAL_LINE_I] = range(4)
+        insilico_pos = []
+        insilico_read_rec_buf = []
+
+        # call check
+        if not read_rec or not source_genome_buf or not contig_mapping:
+            raise ValueError ("missing required args to overlay_source_genome_seq()")
+        if lib_type == 'PE':
+            if not pe_orientation or not pe_insert_len:
+                raise ValueError ("missing pe_orientation or pe_insert_len for overlay_source_genome_seq()")
+            if read_dir == 'rev':
+                if not fwd_insilico_pos:
+                    raise ValueError ("missing fwd_insilico_pos for reverse read in overlay_source_genome_seq()")
+        if pe_insert_len:
+            pe_insert_len = int(pe_insert_len)
+
+        # break up rec
+        header_line = read_rec[READ_HEADER_LINE_I]
+        seq_line    = read_rec[READ_SEQ_LINE_I].rstrip()
+        qual_line   = read_rec[READ_QUAL_LINE_I].rstrip()
+        if len(seq_line) != len(qual_line):
+            raise ValueError ("inconsistent lengths for seq and qual in read rec: "+header_line)
+        read_len = len(seq_line)
+
+        # create new rec
+        insilico_read_rec_buf.append(header_line)
+        insilico_read_rec_buf.append('')  # add sequence later
+        insilico_read_rec_buf.append(read_rec[READ_SPACER_LINE_I])  # should just be the '+' symbol
+        insilico_read_rec_buf.append(qual_line+"\n")
+
+        # if reverse read, assign contig, strand, and pos from fwd_insilico_pos
+        if lib_type == 'PE' and read_dir == 'rev':
+            contig_i = fwd_insilico_pos[POS_CONTIG_I]
+            if pe_orientation == 'IN-IN':
+                if fwd_insilico_pos[POS_STRAND_I] == '+':
+                    strand = '-'
+                    beg_pos = fwd_insilico_pos[POS_BEG_I] + (pe_insert_len - 1)
+                else:
+                    strand = '+'
+                    beg_pos = fwd_insilico_pos[POS_BEG_I] - (pe_insert_len - 1)
+            else:
+                raise ValueError ("do not yet support Paired-End orientations other than IN-IN in overlay_source_genome_seq()")
+
+        # pick contig
+        else:  # read_dir == 'fwd'
+            acceptable_contig = False
+            max_tries = 1000
+            contig_i = -1
+            contig_len = -1
+            for try_i in range(max_tries):
+                contig_i = contig_mapping[random.randint (0,len(contig_mapping)-1)]
+                contig_len = len(source_genome_buf[contig_i])
+                if lib_type == 'SE':
+                    if read_len < contig_len:
+                        acceptable_contig = True
+                        break
+                else:
+                    if 2*read_len < contig_len and pe_insert_len < contig_len:
+                        acceptable_contig = True
+                        break
+            if not acceptable_contig:
+                raise ValueError ("unable to find long enough contig for "+header_line)
+
+            # pick strand
+            if random.randint(0,1) == 0:
+                strand = '+'
+            else:
+                strand = '-'
+
+            # pick beg_pos
+            max_tries = 1000
+            beg_pos = -1
+            acceptable_pos = False
+            for try_i in range(max_tries):
+                if strand == '+':
+                    if lib_type == 'SE':
+                        beg_pos = random.randint(0,contig_len - read_len - 1)
+                        acceptable_pos = True
+                        break
+                    else:
+                        beg_pos = random.randint(0,contig_len - pe_insert_len - 1)
+                        if contig_len - beg_pos > 2*read_len:
+                            acceptable_pos = True
+                            break
+                else:  # strand == '-'
+                    if lib_type == 'SE':
+                        beg_pos = random.randint(read_len-1, contig_len-1)
+                        acceptable_pos = True
+                        break
+                    else:
+                        beg_pos = random.randint(pe_insert_len-1, contig_len-1)
+                        if beg_pos > 2*read_len:
+                            acceptable_pos = True
+                            break
+            if not acceptable_pos:
+                raise ValueError ("unable to find acceptable position for "+header_line)
+
+        # set insilico_pos to return (only matters for fwd reads of PE lib)
+        insilico_pos = [contig_i, strand, beg_pos]
+
+        # overlay genome sequence onto read
+        if strand == '+':
+            genome_slice = source_genome_buf[contig_i][beg_pos:beg_pos+read_len]
+            #print("POSSEQ: "+source_genome_buf[contig_i][beg_pos:beg_pos+read_len])  # DEBUG
+            if len(genome_slice) != read_len:
+                raise ValueError ("unequal read length.  target read len: "+str(read_len)+" insilico read len: "+str(len(genome_slice)))
+        else:
+            #print("SOURCE: "+source_genome_buf[contig_i][beg_pos+1-read_len:beg_pos+1])  # DEBUG
+
+            genome_slice = self.reverse_complement(source_genome_buf[contig_i][beg_pos+1-read_len:beg_pos+1])
+            #print("COMPLT: "+genome_slice)  # DEBUG
+            if len(genome_slice) != read_len:
+                raise ValueError ("unequal read length.  target read len: "+str(read_len)+" insilico read len: "+str(len(genome_slice)))
+        insilico_read_rec_buf[READ_SEQ_LINE_I] = genome_slice+"\n"
+
+        # add in errors
+        if add_errors_by_qual_freq:
+            new_seq = ''
+            for c_i,c in enumerate(genome_slice):
+                qual = qual_line[c_i]
+                new_seq += self.seq_call_with_error(c, qual, 'phred33')
+
+            insilico_read_rec_buf[READ_SEQ_LINE_I] = new_seq+"\n"
+                    
+        # return
+        return (insilico_pos, insilico_read_rec_buf)
 
 
     # Helper script borrowed from the transform service, logger removed
@@ -113,7 +290,7 @@ class kb_ReadsUtilities:
         if filePath is None:
             raise Exception("No file given for upload to SHOCK!")
 
-        dataFile = open(os.path.abspath(filePath), 'rb')
+        dataFile = open(os.path.abspath(filePath), 'r')
         m = MultipartEncoder(fields={'upload': (os.path.split(filePath)[-1], dataFile)})
         header['Content-Type'] = m.content_type
 
@@ -526,7 +703,7 @@ class kb_ReadsUtilities:
             # read fwd file to get fwd ids
 #            rec_cnt = 0  # DEBUG
             self.log (console, "GETTING IDS")  # DEBUG
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -558,7 +735,7 @@ class kb_ReadsUtilities:
             paired_cnt = 0
             capture_type_paired = False
 
-            with open (input_rev_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_rev_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -612,7 +789,7 @@ class kb_ReadsUtilities:
 
             self.log(console,"\t"+str(paired_cnt)+" recs processed")
             self.log (console, "WRITING REV UNPAIRED")  # DEBUG
-            output_reads_file_handle = open (output_rev_unpaired_file_path, 'w', 0)
+            output_reads_file_handle = open (output_rev_unpaired_file_path, 'w')
             output_reads_file_handle.writelines(unpaired_rev_buf)
             output_reads_file_handle.close()
 
@@ -629,7 +806,7 @@ class kb_ReadsUtilities:
             paired_cnt = 0
             capture_type_paired = False
 
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -676,7 +853,7 @@ class kb_ReadsUtilities:
 
             self.log(console,"\t"+str(paired_cnt)+" recs processed")
             self.log (console, "WRITING FWD UNPAIRED")  # DEBUG
-            output_reads_file_handle = open (output_fwd_unpaired_file_path, 'w', 0)
+            output_reads_file_handle = open (output_fwd_unpaired_file_path, 'w')
             output_reads_file_handle.writelines(unpaired_fwd_buf)
             output_reads_file_handle.close()
 
@@ -781,7 +958,7 @@ class kb_ReadsUtilities:
             last_read_id = None
             paired_cnt = 0
             recs_beep_n = 1000000
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -1081,7 +1258,7 @@ class kb_ReadsUtilities:
             # read fwd file to get fwd ids
 #            rec_cnt = 0  # DEBUG
             self.log (console, "GETTING IDS")  # DEBUG
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -1092,6 +1269,8 @@ class kb_ReadsUtilities:
                             raise ValueError ("badly formatted rec line: '"+line+"'")
                         read_id = line.rstrip('\n')
                         read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        # manage read_id edge case: e.g. @SRR5891520.1.1 (forward) & @SRR5891520.1.2 (reverse)                                                               
+                        read_id = ''.join(read_id.rsplit('.',1)) # replace last '.' with ''   
                         read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
                         fwd_ids[read_id] = True
 
@@ -1103,7 +1282,7 @@ class kb_ReadsUtilities:
 
             # read reverse to determine paired
             self.log (console, "DETERMINING PAIRED IDS")  # DEBUG
-            with open (input_rev_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_rev_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -1114,6 +1293,8 @@ class kb_ReadsUtilities:
                             raise ValueError ("badly formatted rec line: '"+line+"'")
                         read_id = line.rstrip('\n')
                         read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        # manage read_id edge case: e.g. @SRR5891520.1.1 (forward) & @SRR5891520.1.2 (reverse)                                                               
+                        read_id = ''.join(read_id.rsplit('.',1)) # replace last '.' with ''   
                         read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
                         if fwd_ids[read_id]:
                             paired_ids[read_id] = True
@@ -1143,10 +1324,20 @@ class kb_ReadsUtilities:
             # Determine random membership in each sublibrary
             self.log (console, "GETTING RANDOM SUBSAMPLES")  # DEBUG
 
-            for i,read_id in enumerate(random.sample (paired_ids_list, reads_per_lib * params['subsample_fraction']['split_num'])):
-                lib_i = i % params['subsample_fraction']['split_num']
-                paired_lib_i[read_id] = lib_i
+            #self.log (console, "len PAIRED_IDS_LIST: "+str(len(paired_ids_list)))
+            #self.log (console, "reads_per_lib: "+str(reads_per_lib))
+            #self.log (console, "split_num: "+str(params['subsample_fraction']['split_num']))
 
+            for i,read_id in enumerate(random.sample (paired_ids_list, reads_per_lib * params['subsample_fraction']['split_num'])):
+                if read_id not in paired_lib_i:
+                    lib_i = i % params['subsample_fraction']['split_num']
+                    paired_lib_i[read_id] = lib_i
+                else:
+                    raise ValueError ("repeated random sample for read id "+read_id)
+            # not all reads are necessarily included.  Shouldn't check
+            #for read_id in paired_ids_list:
+            #    if read_id not in paired_lib_i:
+            #        raise ValueError ("failed to assign output lib for read id "+read_id)
 
             # split fwd paired
             self.log (console, "WRITING FWD SPLIT PAIRED")  # DEBUG
@@ -1160,7 +1351,7 @@ class kb_ReadsUtilities:
             paired_cnt = 0
             capture_type_paired = False
 
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -1183,6 +1374,8 @@ class kb_ReadsUtilities:
                             rec_buf = []
                         read_id = line.rstrip('\n')
                         read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        # manage read_id edge case: e.g. @SRR5891520.1.1 (forward) & @SRR5891520.1.2 (reverse)                                                               
+                        read_id = ''.join(read_id.rsplit('.',1)) # replace last '.' with ''   
                         read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
                         last_read_id = read_id
                         try:
@@ -1222,7 +1415,7 @@ class kb_ReadsUtilities:
             paired_cnt = 0
             capture_type_paired = False
 
-            with open (input_rev_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_rev_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -1244,6 +1437,8 @@ class kb_ReadsUtilities:
                             rec_buf = []
                         read_id = line.rstrip('\n')
                         read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        # manage read_id edge case: e.g. @SRR5891520.1.1 (forward) & @SRR5891520.1.2 (reverse)                                                               
+                        read_id = ''.join(read_id.rsplit('.',1)) # replace last '.' with ''   
                         read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
                         last_read_id = read_id
                         try:
@@ -1331,7 +1526,7 @@ class kb_ReadsUtilities:
             paired_buf_size = 100000
             recs_beep_n = 1000000
 
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -1342,6 +1537,8 @@ class kb_ReadsUtilities:
                             raise ValueError ("badly formatted rec line: '"+line+"'")
                         read_id = line.rstrip('\n')
                         read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        # manage read_id edge case: e.g. @SRR5891520.1.1 (forward) & @SRR5891520.1.2 (reverse)                                                               
+                        read_id = ''.join(read_id.rsplit('.',1)) # replace last '.' with ''
                         read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
                         if read_id in paired_ids:
                             self.log (console, "WARNING: repeat read_id "+read_id+" in reads library "+input_reads_obj_name)
@@ -1371,9 +1568,20 @@ class kb_ReadsUtilities:
             # Determine random membership in each sublibrary
             self.log (console, "GETTING RANDOM SUBSAMPLES")  # DEBUG
 
+            #self.log (console, "len PAIRED_IDS_LIST: "+str(len(paired_ids_list)))
+            #self.log (console, "reads_per_lib: "+str(reads_per_lib))
+            #self.log (console, "split_num: "+str(params['subsample_fraction']['split_num']))
+            
             for i,read_id in enumerate(random.sample (paired_ids_list, reads_per_lib * params['subsample_fraction']['split_num'])):
-                lib_i = i % params['subsample_fraction']['split_num']
-                paired_lib_i[read_id] = lib_i
+                if read_id not in paired_lib_i:
+                    lib_i = i % params['subsample_fraction']['split_num']
+                    paired_lib_i[read_id] = lib_i
+                else:
+                    raise ValueError ("repeated random sample for read id "+read_id)
+            # not all reads are necessarily included.  Shouldn't check
+            #for read_id in paired_ids_list:
+            #    if read_id not in paired_lib_i:
+            #        raise ValueError ("failed to assign output lib for read id "+read_id)
 
 
             # set up for file io
@@ -1393,7 +1601,7 @@ class kb_ReadsUtilities:
             last_read_id = None
             paired_cnt = 0
             recs_beep_n = 1000000
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -1416,6 +1624,8 @@ class kb_ReadsUtilities:
                             rec_buf = []
                         read_id = line.rstrip('\n')
                         read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        # manage read_id edge case: e.g. @SRR5891520.1.1 (forward) & @SRR5891520.1.2 (reverse)                                                               
+                        read_id = ''.join(read_id.rsplit('.',1)) # replace last '.' with ''   
                         read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
                         last_read_id = read_id
                     rec_buf.append(line)
@@ -1926,9 +2136,9 @@ class kb_ReadsUtilities:
         read_buf_size  = 65536
         write_buf_size = 65536
         combined_input_fwd_path = os.path.join (input_dir, 'input_reads_fwd.fastq')
-        combined_input_rev_path = os.path.join (input_dir, 'input_reads_rev.fastq')
+        #combined_input_rev_path = os.path.join (input_dir, 'input_reads_rev.fastq')
         combined_input_fwd_handle = open (combined_input_fwd_path, 'w', write_buf_size)
-        combined_input_rev_handle = open (combined_input_rev_path, 'w', write_buf_size)
+        #combined_input_rev_handle = open (combined_input_rev_path, 'w', write_buf_size)
 
 
         # add libraries, one at a time
@@ -1939,15 +2149,17 @@ class kb_ReadsUtilities:
             self.log (console, "DOWNLOADING FASTQ FILES FOR ReadsSet member: "+str(this_input_reads_ref))
             try:
                 readsLibrary = readsUtils_Client.download_reads ({'read_libraries': [this_input_reads_ref],
-                                                                  'interleaved': 'false'
+                                                                  #'interleaved': 'false'
+                                                                  'interleaved': 'true'
                                                                   })
             except Exception as e:
                 raise ValueError('Unable to get reads object from workspace: (' + this_input_reads_ref +")\n" + str(e))
 
             this_input_fwd_path = readsLibrary['files'][this_input_reads_ref]['files']['fwd']
 
-            if input_reads_obj_type == "KBaseFile.PairedEndLibrary":
-                this_input_rev_path = readsLibrary['files'][this_input_reads_ref]['files']['rev']
+            # doing interleaved now
+            #if input_reads_obj_type == "KBaseFile.PairedEndLibrary":
+            #    this_input_rev_path = readsLibrary['files'][this_input_reads_ref]['files']['rev']
 
             this_sequencing_tech = readsLibrary['files'][this_input_reads_ref]['sequencing_tech']
             if sequencing_tech == None:
@@ -1980,6 +2192,8 @@ class kb_ReadsUtilities:
                     cat_file_handle.write(line)
             os.remove (this_input_path)  # create space since we no longer need the piece file
 
+            # doing interleaved now
+            """
             # append rev
             if input_reads_obj_type == "KBaseFile.PairedEndLibrary":
                 this_input_path = this_input_rev_path
@@ -2003,9 +2217,10 @@ class kb_ReadsUtilities:
                             line = '@'+clean_ref+':'+line[1:]
                         cat_file_handle.write(line)
                 os.remove (this_input_path)  # create space since we no longer need the piece file
+            """
 
         combined_input_fwd_handle.close()
-        combined_input_rev_handle.close()
+        #combined_input_rev_handle.close()  # doing interleaved now
 
 
         # upload reads
@@ -2014,11 +2229,11 @@ class kb_ReadsUtilities:
         if not os.path.isfile (combined_input_fwd_path) \
                 or os.path.getsize (combined_input_fwd_path) == 0:
             raise ValueError ("failed to create fwd read library output")
-        if input_reads_obj_type == "KBaseFile.PairedEndLibrary":
-            if not os.path.isfile (combined_input_rev_path) \
-                or os.path.getsize (combined_input_rev_path) == 0:
-                    
-                raise ValueError ("failed to create rev read library output")
+        #if input_reads_obj_type == "KBaseFile.PairedEndLibrary":
+        #    if not os.path.isfile (combined_input_rev_path) \
+        #        or os.path.getsize (combined_input_rev_path) == 0:
+        #            
+        #        raise ValueError ("failed to create rev read library output")
 
         output_obj_name = params['output_name']
         self.log(console, 'Uploading reads library: '+output_obj_name)
@@ -2031,7 +2246,8 @@ class kb_ReadsUtilities:
                                                                   'source_reads_ref': readsSet_ref_list[0],
                                                                   'single_genome': 0,
                                                                   'fwd_file': combined_input_fwd_path,
-                                                                  'rev_file': combined_input_rev_path
+                                                                  #'rev_file': combined_input_rev_path
+                                                                  'interleaved': 'true'
                                                                   })['obj_ref']
         else:
             reads_library_ref = readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
@@ -2248,7 +2464,7 @@ class kb_ReadsUtilities:
             # read rev file to get rev ids and order
             rec_cnt = 0
             self.log (console, "GETTING REV IDS")  # DEBUG
-            with open (input_rev_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_rev_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -2272,7 +2488,7 @@ class kb_ReadsUtilities:
             rec_cnt = 0
             pair_pos = 0
             self.log (console, "GETTING FWD IDS")  # DEBUG
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -2356,7 +2572,7 @@ class kb_ReadsUtilities:
             unpaired_cnt = 0
             capture_type_paired = False
 
-            with open (input_fwd_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -2424,7 +2640,7 @@ class kb_ReadsUtilities:
             unpaired_cnt = 0
             capture_type_paired = False
 
-            with open (input_rev_file_path, 'r', 0) as input_reads_file_handle:
+            with open (input_rev_file_path, 'r') as input_reads_file_handle:
                 rec_line_i = -1
                 for line in input_reads_file_handle:
                     rec_line_i += 1
@@ -3301,6 +3517,1647 @@ class kb_ReadsUtilities:
         # At some point might do deeper type checking...
         if not isinstance(returnVal, dict):
             raise ValueError('Method KButil_AddInsertLen_to_ReadsLibs return value ' +
+                             'returnVal is not type dict as required.')
+        # return the results
+        return [returnVal]
+
+    def KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads(self, ctx, params):
+        """
+        :param params: instance of type
+           "KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_Params"
+           (KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads() ** < 
+           **  Method for random subsampling of reads library combined with
+           overlay of configured genomes) -> structure: parameter
+           "workspace_name" of type "workspace_name" (** The workspace object
+           refs are of form: ** **    objects = ws.get_objects([{'ref':
+           params['workspace_id']+'/'+params['obj_name']}]) ** ** "ref" means
+           the entire name combining the workspace id and the object name **
+           "id" is a numerical identifier of the workspace or object, and
+           should just be used for workspace ** "name" is a string identifier
+           of a workspace or object.  This is received from Narrative.),
+           parameter "input_genomeSet_ref" of type "data_obj_ref", parameter
+           "genome_abundances" of String, parameter "input_reads_ref" of type
+           "data_obj_ref", parameter "output_name" of type "data_obj_name",
+           parameter "subsample_fraction" of type "Fractionate_Options"
+           (KButil_Random_Subsample_Reads() ** **  Method for random
+           subsampling of reads library) -> structure: parameter "split_num"
+           of Long, parameter "reads_num" of Long, parameter "reads_perc" of
+           Double, parameter "genome_length_bias" of type "bool", parameter
+           "desc" of String, parameter "pe_insert_len" of Long, parameter
+           "pe_orientation" of String, parameter "seed" of Long
+        :returns: instance of type
+           "KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_Output"
+           -> structure: parameter "report_name" of type "data_obj_name",
+           parameter "report_ref" of type "data_obj_ref"
+        """
+        # ctx is the context object
+        # return variables are: returnVal
+        #BEGIN KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads
+        console = []
+        invalid_msgs = []
+        self.log(console, 'Running KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads() with parameters: ')
+        self.log(console, "\n"+pformat(params))
+        report = ''
+        
+        token = ctx['token']
+        headers = {'Authorization': 'OAuth '+token}
+        env = os.environ.copy()
+        env['KB_AUTH_TOKEN'] = token
+
+        # dirs
+        timestamp = int((datetime.utcnow() - datetime.utcfromtimestamp(0)).total_seconds()*1000)
+        input_dir = os.path.join(self.scratch,'input.'+str(timestamp))
+        if not os.path.exists(input_dir):
+            os.makedirs(input_dir)
+        output_dir = os.path.join(self.scratch,'output.'+str(timestamp))
+        if not os.path.exists(input_dir):
+            os.makedirs(input_dir)
+
+        
+        # Init clients
+        #
+        #SERVICE_VER = 'dev'  # DEBUG
+        SERVICE_VER = 'release'
+        try:
+            wsClient = workspaceService(self.workspaceURL, token=token)            
+            [OBJID_I, NAME_I, TYPE_I, SAVE_DATE_I, VERSION_I, SAVED_BY_I, WSID_I, WORKSPACE_I, CHSUM_I, SIZE_I, META_I] = range(11)  # object_info tuple
+        except Exception as e:
+            raise ValueError('Unable to get Workspace Client' +"\n" + str(e))
+        try:
+            readsUtils_Client = ReadsUtils (url=self.callbackURL, token=token, service_ver=SERVICE_VER)
+        except Exception as e:
+            raise ValueError('Unable to get ReadsUtils Client' +"\n" + str(e))
+        try:
+            dfuClient = DataFileUtil (url=self.callbackURL, token=token, service_ver=SERVICE_VER)
+        except Exception as e:
+            raise ValueError('Unable to get AssemblyUtil Client' +"\n" + str(e))
+        try:
+            AssemblyUtilClient = AssemblyUtil (url=self.callbackURL, token=token, service_ver=SERVICE_VER)
+        except Exception as e:
+            raise ValueError('Unable to get AssemblyUtil Client' +"\n" + str(e))
+        try:
+            setAPI_Client = SetAPI (url=self.serviceWizardURL, token=token, service_ver=SERVICE_VER)
+        except Exception as e:
+            raise ValueError('Unable to get SetAPI Client' +"\n" + str(e))
+        try:
+            reportClient = KBaseReport (self.callbackURL, token=token, service_ver=SERVICE_VER)
+        except Exception as e:
+            raise ValueError('Unable to get report Client' +"\n" + str(e))
+        
+        # init randomizer
+        if 'seed' in params and params['seed'] != None:
+            random.seed(params['seed'])
+        else:
+            random.seed()
+
+        # param checks
+        required_params = ['workspace_name',
+                           'input_genomeSet_ref', 
+                           'genome_abundances',
+                           'input_reads_ref', 
+                           'output_name'
+                           ]
+        for required_param in required_params:
+            if required_param not in params or params[required_param] == None:
+                raise ValueError ("Must define required param: '"+required_param+"'")
+
+#        # and param defaults
+#        defaults = { 'split_num': 10
+#                   }
+#        for arg in defaults.keys():
+#            if arg not in params or params[arg] == None or params[arg] == '':
+#                params[arg] = defaults[arg]
+
+        if not params.get('subsample_fraction'):
+            raise ValueError ("Missing subsample_fraction params")
+        if not int(params['subsample_fraction'].get('split_num',0)):
+            raise ValueError ("Missing split_num")
+
+        # use split_num to create reads_perc if neither reads_num or reads_perc defined
+        use_reads_num  = False
+        use_reads_perc = False
+        if int(params['subsample_fraction'].get('reads_num',0)):
+            self.log (console, "Ignoring reads_perc and just using reads_num: "+str(params['subsample_fraction']['reads_num']))
+            use_reads_num  = True
+            
+        elif int(params['subsample_fraction'].get('reads_perc',0)) and float(params['subsample_fraction']['reads_perc']) <= 100:
+            self.log (console, "Ignoring reads_num and just using reads_perc: "+str(params['subsample_fraction']['reads_perc']))
+            use_reads_perc = True
+
+        elif not int(params['subsample_fraction'].get('reads_num',0)) and not int(params['subsample_fraction'].get('reads_perc',0)):
+            params['subsample_fraction']['reads_perc'] = int(100.0 * 1.0/float(params['subsample_fraction']['split_num']))
+            use_reads_perc = True
+
+        else:
+            raise ValueError ("Badly configured subsample_fraction params")
+            
+
+        # load provenance
+        provenance = [{}]
+        if 'provenance' in ctx:
+            provenance = ctx['provenance']
+        provenance[0]['input_ws_objects']=[]
+        provenance[0]['input_ws_objects'].append(str(params['input_genomeSet_ref']))
+        provenance[0]['input_ws_objects'].append(str(params['input_reads_ref']))
+
+
+        # Determine whether read library is of correct type
+        #
+        try:
+            input_reads_ref = params['input_reads_ref']
+            input_reads_obj_info = wsClient.get_object_info_new ({'objects':[{'ref':input_reads_ref}]})[0]
+            input_reads_obj_name = input_reads_obj_info[NAME_I]
+            input_reads_obj_type = input_reads_obj_info[TYPE_I]
+            input_reads_obj_type = re.sub ('-[0-9]+\.[0-9]+$', "", input_reads_obj_type)  # remove trailing version
+            #input_reads_obj_version = input_reads_obj_info[VERSION_I]  # this is object version, not type version
+
+        except Exception as e:
+            raise ValueError('Unable to get read library object info from workspace: (' + str(input_reads_ref) +')' + str(e))
+
+        PE_types = ["KBaseFile.PairedEndLibrary"]
+        SE_types = ["KBaseFile.SingleEndLibrary"]
+        acceptable_types = PE_types + SE_types
+        if input_reads_obj_type not in acceptable_types:
+            raise ValueError ("Input reads of type: '"+input_reads_obj_type+"'.  Must be one of "+", ".join(acceptable_types))
+
+
+        # Determine whether paired end lib input params are defined
+        #
+        if input_reads_obj_type in PE_types:
+            if not params.get('pe_orientation') \
+               or not int(params.get('pe_insert_len',0)):
+                raise ValueError ("require Paired-End Orientation and Paired-End insert length for Paired-End library input")
+
+
+        # divide reads_num by 2 if paired end library because only counting pairs
+        #
+        if input_reads_obj_type in PE_types and int(params['subsample_fraction'].get('reads_num',0)):
+            orig_reads_num = params['subsample_fraction']['reads_num']
+            params['subsample_fraction']['reads_num'] = int (orig_reads_num/2.0 + 0.5)
+            self.log (console, "Adjusting reads num to number of pairs.  Input reads num: "+str(orig_reads_num)+" new pairs num: "+str(params['subsample_fraction']['reads_num']))
+
+
+        # Get Genome Set and object name <-> ref mapping
+        #
+        genome_name_by_ref = dict()
+        genome_ref_by_name = dict()
+        input_genomeSet_name = None
+        try:
+            #objects = wsClient.get_objects([{'ref': params['input_genomeset_ref']}])
+            objects = wsClient.get_objects2({'objects': [{'ref': params['input_genomeSet_ref']}]})['data']
+            genomeSet = objects[0]['data']
+            info = objects[0]['info']
+
+            input_genomeSet_name = info[NAME_I]
+            type_name = info[TYPE_I].split('.')[1].split('-')[0]
+            if type_name != 'GenomeSet':
+                raise ValueError("Bad Type: Should be GenomeSet instead of '" + type_name + "'")
+        except Exception as e:
+            raise ValueError('Unable to fetch input_genomeSet_ref object from workspace: ' + str(e))
+            #to get the full stack trace: traceback.format_exc()
+
+        for gId in genomeSet['elements'].keys():
+            genomeRef = genomeSet['elements'][gId]['ref']
+            try:
+                already_included = genome_name_by_ref[genomeRef]
+            except:
+                try:
+                    genome_obj_info = wsClient.get_object_info_new ({'objects':[{'ref':genomeRef}]})[0]
+                    genomeName = genome_obj_info[NAME_I]
+                except Exception as e:
+                    raise ValueError('Unable to fetch genome object from workspace: ' + str(genomeRef) + str(e))
+                    #to get the full stack trace: traceback.format_exc()
+                genome_name_by_ref[genomeRef] = genomeName
+                genome_ref_by_name[genomeName] = genomeRef
+
+            
+        # Determine relative unbiased percentages of genomes
+        #
+        genome_abundances = dict()
+        genome_ref_order = []
+        summed_abundance = 0.0
+        if not params.get('genome_abundances'):
+            for genome_ref in sorted(genome_name_by_ref.keys()):
+                genome_ref_order.append(genome_ref)
+            n_genomes = len(genome_ref_order)
+            even_perc = 100.0 / n_genomes
+            for genome_ref in genome_ref_order:
+                genome_abundances[genome_ref] = even_perc
+        else:
+            ws_ref_pattern = re.compile('^\d+/\d+/\d+$')
+            for genome_abundance_row in params['genome_abundances'].split("\n"):
+                genome_abundance_row = genome_abundance_row.strip()
+                [genome_id, abundance] = genome_abundance_row.split()
+
+                # genome_ref
+                if ws_ref_pattern.match(genome_id):
+                    genome_ref = genome_id
+                else:
+                    try:
+                        genome_ref = genome_ref_by_name[genome_id]
+                    except:
+                        raise ValueError ("Genome object: "+genome_id+" in genome abundances configuration not found in Genome Set: "+input_genomeSet_name)
+                genome_ref_order.append(genome_ref)
+                
+                # abundance
+                abundance = float(abundance)
+                if abundance < 0  or  abundance > 100:
+                    raise ValueError ("Genome object: "+genome_id+" ("+str(genome_ref)+") in genome abundances configuration has a non-percentile abundance: "+str(abundance))
+                genome_abundances[genome_ref] = abundance
+                summed_abundance += abundance
+                
+            # add unspecified genomes
+            if summed_abundance > 100.1:
+                raise ValueError ("Genome abundances sum to: "+str(summed_abundance)+".  Must be <= 100.0")
+            elif summed_abundance < 99.9:
+                abundance_remainder = 100.0 - summed_abundance
+                genome_ref_remainder = []
+                for genome_ref in sorted(genome_name_by_ref.keys()):
+                    if genome_ref in genome_abundances:
+                        continue
+                    genome_ref_remainder.append(genome_ref)
+                if len(genome_ref_remainder) == 0:
+                    raise ValueError ("There were no unspecified genomes in Genome Set: "+input_genomeSet_name+" ("+str(input_genomeSet_ref)+") to assign the remaining abundance: "+str(abundance_remainder))
+
+                # split remaining abundance evenly
+                n_remaining_genomes = len(genome_ref_remainder)
+                even_perc = abundance_remainder / n_remaining_genomes
+                for genome_ref in genome_ref_remainder:
+                    genome_ref_order.append(genome_ref)
+                    genome_abundances[genome_ref] = even_perc
+
+
+        # Check on progress
+        #
+        self.log(console, "TOTAL ABUNDANCE: "+str(summed_abundance))
+        for genome_ref in genome_ref_order:
+            self.log(console, "Genome Abundance: "+str(genome_abundances[genome_ref])+" for "+genome_name_by_ref[genome_ref])
+
+
+        # Determine assembly lengths and Download source Assemblies
+        #
+        assembly_file_by_genome_ref = dict()
+        assembly_len_by_genome_ref = dict()
+        total_assembly_len = 0
+        for genome_ref in genome_ref_order:
+            assembly_len_by_genome_ref[genome_ref] = 0
+            try:
+                genome_obj = wsClient.get_objects([{'ref': genome_ref}])[0]['data']
+            except:
+                raise ValueError("unable to fetch genome: " + genome_ref)
+
+            # contig lengths may already be in Genome obj
+            if genome_obj.get('contig_ids') and genome_obj.get('contig_lengths'):
+                for contig_i, contig_id in enumerate(genome_obj['contig_ids']):
+                    contig_len = genome_obj['contig_lengths'][contig_i]
+                    assembly_len_by_genome_ref[genome_ref] += contig_len
+                    total_assembly_len += contig_len
+
+            # Get genome_assembly_refs
+            genome_assembly_ref = None
+            genome_assembly_type = None
+            if not genome_obj.get('contigset_ref') and not genome_obj.get('assembly_ref'):
+                msg = "Genome " + genome_name_by_ref[genome_ref] + " ("+genome_ref+") "+ \
+                    " MISSING BOTH contigset_ref AND assembly_ref.  Cannot process.  Exiting."
+                raise ValueError(msg)
+            elif genome_obj.get('assembly_ref'):
+                assembly_ref = genome_obj['assembly_ref']
+                genome_assembly_type = 'assembly'
+                msg = "Genome " + genome_name_by_ref[genome_ref] + " ("+genome_ref+") "+ \
+                    " USING assembly_ref: "+assembly_ref
+                self.log(console, msg)
+            elif genome_obj.get('contigset_ref'):
+                assembly_ref = genome_obj['contigset_ref']
+                genome_assembly_type = 'contigset'
+                msg = "Genome " + genome_name_by_ref[genome_ref] + " ("+genome_ref+") "+ \
+                    " USING contigset_ref: "+assembly_ref
+                self.log(console, msg)
+            else:
+                raise ValueError ("Bad logic in finding assembly or contigset in genome object: "+genome_name_by_ref[genome_ref]+" ("+genome_ref+")")
+
+            # Get and save assemblies
+            contig_file = AssemblyUtilClient.get_assembly_as_fasta({'ref':assembly_ref}).get('path')
+            sys.stdout.flush()
+            contig_file_path = dfuClient.unpack_file({'file_path': contig_file})['file_path']
+            assembly_file_by_genome_ref[genome_ref] = contig_file_path
+
+
+        # Read assemblies into buffers
+        #
+        assembly_bufs_by_genome_ref = dict()
+        contig_i_weighted_mapping_by_genome_ref = dict()
+        for genome_ref in genome_ref_order:
+            assembly_bufs_by_genome_ref[genome_ref] = []
+            contig_i_weighted_mapping_by_genome_ref[genome_ref] = []
+
+            # score fasta lens in contig files
+            read_buf_size  = 65536
+            write_buf_size = 65536
+
+            with open (assembly_file_by_genome_ref[genome_ref], 'r', read_buf_size) as ass_handle:
+                seq_buf = ''
+                last_header = ''
+                contig_i = 0
+                for fasta_line in ass_handle:
+                    fasta_line = fasta_line.strip()
+                    if fasta_line.startswith('>'):
+                        if seq_buf != '':
+                            assembly_bufs_by_genome_ref[genome_ref].append(seq_buf)
+                            for pos_i in range(len(seq_buf)):
+                                contig_i_weighted_mapping_by_genome_ref[genome_ref].append(contig_i)
+                            contig_i += 1
+                            seq_buf = ''
+                            last_header = fasta_line
+                    else:
+                        seq_buf += ''.join(fasta_line.split())
+                if seq_buf != '':
+                    assembly_bufs_by_genome_ref[genome_ref].append(seq_buf)
+                    for pos_i in range(len(seq_buf)):
+                        contig_i_weighted_mapping_by_genome_ref[genome_ref].append(contig_i)
+                    seq_buf = ''
+
+
+        # Add assembly lengths if not yet captured
+        #
+        for genome_ref in genome_ref_order:
+            if assembly_len_by_genome_ref[genome_ref] == 0:
+                for ass_buf in assembly_bufs_by_genome_ref[genome_ref]:
+                    contig_len = len(ass_buf)
+                    assembly_len_by_genome_ref[genome_ref] += contig_len
+                    total_assembly_len += contig_len
+
+
+        # Adjust relative abundance to include genome length bias
+        #
+        if int(params.get('genome_length_bias',0)):
+            scaled_total = 0
+            for genome_ref in genome_ref_order:
+                length_bias = assembly_len_by_genome_ref[genome_ref] / float(total_assembly_len)
+                self.log(console, "Genome Bias: "+str(length_bias)+" for "+genome_name_by_ref[genome_ref])  # DEBUG
+                genome_abundances[genome_ref] *= length_bias
+                self.log(console, "Biased Abundance: "+str(genome_abundances[genome_ref])+" for "+genome_name_by_ref[genome_ref])  # DEBUG
+
+
+        # Rescale relative abundances to fix biased abundances (and fix near but off 100% totals)
+        #
+        adjusted_summed_abundance = 0
+        corrected_summed_abundance = 0
+        for genome_ref in genome_ref_order:
+            adjusted_summed_abundance += genome_abundances[genome_ref]
+        for genome_ref in genome_ref_order:
+            genome_abundances[genome_ref] = 100 * genome_abundances[genome_ref] / adjusted_summed_abundance
+            corrected_summed_abundance += genome_abundances[genome_ref]
+
+
+        # Check on progress
+        #
+        self.log(console, "REVISED TOTAL ABUNDANCE: "+str(adjusted_summed_abundance))
+        self.log(console, "CORRECTED TOTAL ABUNDANCE: "+str(corrected_summed_abundance))
+        for genome_ref in genome_ref_order:
+            self.log(console, "Corrected Genome Abundance: "+str(genome_abundances[genome_ref]))
+
+
+        # Build genome lookup for random sampler
+        #
+        genome_lookup = []
+        genome_lookup_resolution = 1000000
+        for genome_i,genome_ref in enumerate(genome_ref_order):
+            for i in range(int(genome_lookup_resolution * genome_abundances[genome_ref]/100.0)):
+                genome_lookup.append(genome_i)
+        filled = len(genome_lookup)
+        if filled < genome_lookup_resolution:
+            for i in range(genome_lookup_resolution-filled):
+                genome_i = i % len(genome_ref_order)
+                genome_lookup.append(genome_i)
+
+
+        # Download Reads
+        #
+        self.log (console, "DOWNLOADING READS")  # DEBUG
+        try:
+            readsLibrary = readsUtils_Client.download_reads ({'read_libraries': [input_reads_ref],
+                                                             'interleaved': 'false'
+                                                             })
+        except Exception as e:
+            raise ValueError('Unable to download read library sequences from workspace: (' + str(input_reads_ref) +")\n" + str(e))
+
+
+        # Paired End
+        #
+        if input_reads_obj_type == "KBaseFile.PairedEndLibrary":
+
+            # Download reads Libs to FASTQ files
+            input_fwd_file_path = readsLibrary['files'][input_reads_ref]['files']['fwd']
+            input_rev_file_path = readsLibrary['files'][input_reads_ref]['files']['rev']
+            sequencing_tech     = readsLibrary['files'][input_reads_ref]['sequencing_tech']
+
+            # file paths
+            input_fwd_path = re.sub ("\.fastq$", "", input_fwd_file_path)
+            input_fwd_path = re.sub ("\.FASTQ$", "", input_fwd_path)
+            input_rev_path = re.sub ("\.fastq$", "", input_rev_file_path)
+            input_rev_path = re.sub ("\.FASTQ$", "", input_rev_path)
+            output_fwd_paired_file_path_base   = input_fwd_path+"_fwd_paired"
+            output_rev_paired_file_path_base   = input_rev_path+"_rev_paired"
+            # set up for file io
+            total_paired_reads = 0
+            total_unpaired_fwd_reads = 0
+            total_unpaired_rev_reads = 0
+            total_paired_reads_by_set = []
+            fwd_ids = dict()
+            paired_ids = dict()
+            paired_ids_list = []
+            paired_lib_i = dict()
+            source_genome_i = dict()
+            read_ids_by_lib = []
+            paired_buf_size = 100000
+            recs_beep_n = 1000000
+
+            # read fwd file to get fwd ids
+#            rec_cnt = 0  # DEBUG
+            self.log (console, "GETTING IDS")  # DEBUG
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
+                rec_line_i = -1
+                for line in input_reads_file_handle:
+                    rec_line_i += 1
+                    if rec_line_i == 3:
+                        rec_line_i = -1
+                    elif rec_line_i == 0:
+                        if not line.startswith('@'):
+                            raise ValueError ("badly formatted rec line: '"+line+"'")
+                        read_id = line.rstrip('\n')
+                        read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
+                        fwd_ids[read_id] = True
+
+                        # DEBUG
+#                        if rec_cnt % 100 == 0:
+#                            self.log(console,"read_id: '"+str(read_id)+"'")
+#                        rec_cnt += 1 
+
+
+            # read reverse to determine paired
+            self.log (console, "DETERMINING PAIRED IDS")  # DEBUG
+            with open (input_rev_file_path, 'r') as input_reads_file_handle:
+                rec_line_i = -1
+                for line in input_reads_file_handle:
+                    rec_line_i += 1
+                    if rec_line_i == 3:
+                        rec_line_i = -1
+                    elif rec_line_i == 0:
+                        if not line.startswith('@'):
+                            raise ValueError ("badly formatted rec line: '"+line+"'")
+                        read_id = line.rstrip('\n')
+                        read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
+                        if fwd_ids[read_id]:
+                            paired_ids[read_id] = True
+                            paired_ids_list.append(read_id)
+
+                        # DEBUG
+#                        if rec_cnt % 100 == 0:
+#                            self.log(console,"read_id: '"+str(read_id)+"'")
+#                        rec_cnt += 1 
+            total_paired_reads = len(paired_ids_list)
+            self.log (console, "TOTAL PAIRED READS CNT: "+str(total_paired_reads))  # DEBUG
+
+
+            # Determine sublibrary sizes
+            if use_reads_num:
+                reads_per_lib = params['subsample_fraction']['reads_num']
+                if reads_per_lib > total_paired_reads // params['subsample_fraction']['split_num']:
+                    raise ValueError ("must specify reads_num <= total_paired_reads_cnt / split_num.  You have reads_num:"+str(params['subsample_fraction']['reads_num'])+" > total_paired_reads_cnt:"+str(total_paired_reads)+" / split_num:"+str(params['subsample_fraction']['split_num'])+".  Instead try reads_num <= "+str(total_paired_reads // params['subsample_fraction']['split_num']))
+            elif use_reads_perc:
+                reads_per_lib = int ((params['subsample_fraction']['reads_perc']/100.0) * total_paired_reads)
+                if reads_per_lib > total_paired_reads // params['subsample_fraction']['split_num']:
+                    raise ValueError ("must specify reads_perc <= 1 / split_num.  You have reads_perc:"+str(params['subsample_fraction']['reads_perc'])+" > 1 / split_num:"+str(params['subsample_fraction']['split_num'])+".  Instead try reads_perc <= "+ str(int(100 * 1/params['subsample_fraction']['split_num'])))
+            else:
+                raise ValueError ("error in logic reads_num vs. reads_perc logic")
+
+            
+            # Determine random membership in each sublibrary
+            self.log (console, "GETTING RANDOM READ SUBSAMPLES")  # DEBUG
+            for lib_i in range(int(params['subsample_fraction']['split_num'])):
+                read_ids_by_lib.append([])
+            for i,read_id in enumerate(random.sample (paired_ids_list, reads_per_lib * int(params['subsample_fraction']['split_num']))):
+                if read_id not in paired_lib_i:
+                    lib_i = i % int(params['subsample_fraction']['split_num'])
+                    paired_lib_i[read_id] = lib_i
+                    read_ids_by_lib[lib_i].append(read_id)
+                else:
+                    raise ValueError ("repeated random sample for read id "+read_id)
+            for read_id in paired_ids_list:
+                if read_id not in paired_lib_i:
+                    raise ValueError ("failed to assign output lib for read id "+read_id)
+
+            # Determine random source genome for each read
+            self.log (console, "GETTING RANDOM GENOME SOURCE ASSIGNMENT FOR READS")  # DEBUG
+            for lib_i in range(len(read_ids_by_lib)):
+                for read_i,genome_lookup_i_map in enumerate(random.sample (genome_lookup, reads_per_lib)):
+                    source_genome_i[read_ids_by_lib[lib_i][read_i]] = genome_lookup_i_map
+
+            # split fwd paired
+            self.log (console, "WRITING FWD SPLIT PAIRED")  # DEBUG
+            paired_output_reads_file_handles = []
+            for lib_i in range(int(params['subsample_fraction']['split_num'])):
+                paired_output_reads_file_handles.append(open (output_fwd_paired_file_path_base+"-"+str(lib_i)+".fastq", 'w', paired_buf_size))
+                total_paired_reads_by_set.append(0)
+
+            rec_buf = []
+            last_read_id = None
+            paired_cnt = 0
+            capture_type_paired = False
+            fwd_insilico_position = dict()
+
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
+                rec_line_i = -1
+                for line in input_reads_file_handle:
+                    rec_line_i += 1
+                    if rec_line_i == 3:
+                        rec_line_i = -1
+                    elif rec_line_i == 0:
+                        if not line.startswith('@'):
+                            raise ValueError ("badly formatted rec line: '"+line+"'")
+                        if last_read_id != None:
+                            if capture_type_paired:
+                                try:
+                                    lib_i = paired_lib_i[last_read_id]
+                                except:
+                                    raise ValueError ("Failed to find lib for read rec "+last_read_id)
+
+                                #if paired_cnt % recs_beep_n == 0:
+                                #    self.log(console,"OLD FWD READ:")  # DEBUG
+                                #    self.log(console,"\n".join(rec_buf)) # DEBUG
+
+                                try:
+                                    # replace read with source genome sequence
+                                    source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                                except:
+                                    raise ValueError ("Failed to find source genome for read rec "+last_read_id)
+
+                                try:
+                                    (fwd_insilico_position[last_read_id], insilico_read_rec_buf) = self.overlay_source_genome_seq (
+                                        read_rec=rec_buf, 
+                                        source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                                        contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                                    
+                                        lib_type='PE',
+                                        read_dir='fwd',
+                                        fwd_insilico_pos=None,
+                                        pe_orientation=params['pe_orientation'],
+                                        pe_insert_len=int(params['pe_insert_len']),
+                                        add_errors_by_qual_freq=True
+                                    )
+                                except:
+                                    raise ValueError ("Failed to transform read rec "+last_read_id+"\n"+"".join(rec_buf))
+
+                                #if paired_cnt % recs_beep_n == 0:
+                                #    self.log(console,"NEW FWD READ:")  # DEBUG
+                                #    self.log(console,"\n".join(insilico_read_rec_buf)) # DEBUG
+
+                                try:
+                                    # write rec to file
+                                    paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+                                except:
+                                    raise ValueError ("Failed to write read rec "+last_read_id+"\n"+"".join(insilico_read_rec_buf))
+
+                                    
+                                paired_cnt += 1
+                                total_paired_reads_by_set[lib_i] += 1
+                                if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
+                                    self.log(console,"\t"+str(paired_cnt)+" recs processed")
+                            else:
+                                #unpaired_fwd_buf.extend(rec_buf)
+                                pass
+                            rec_buf = []
+                        read_id = line.rstrip('\n')
+                        read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
+                        last_read_id = read_id
+                        try:
+                            found = paired_lib_i[read_id]
+                            capture_type_paired = True
+                        except:
+                            total_unpaired_fwd_reads += 1
+                            capture_type_paired = False
+                    rec_buf.append(line)
+                # last rec
+                if len(rec_buf) > 0:
+                    if capture_type_paired:
+                        try:
+                            lib_i = paired_lib_i[last_read_id]
+                        except:
+                            raise ValueError ("Failed to find lib for read rec "+last_read_id)
+
+                        try:
+                            # replace read with source genome sequence
+                            source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                        except:
+                            raise ValueError ("Failed to find source genome for read rec "+last_read_id)
+                        try:
+                            (fwd_insilico_position[last_read_id], insilico_read_rec_buf) = self.overlay_source_genome_seq (read_rec=rec_buf, 
+                                source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                                contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                                lib_type='PE',
+                                read_dir='fwd',
+                                fwd_insilico_pos=None,
+                                pe_orientation=params['pe_orientation'],
+                                pe_insert_len=int(params['pe_insert_len']),
+                                add_errors_by_qual_freq=True
+                            )
+                        except:
+                            raise ValueError ("Failed to transform read rec "+last_read_id+"\n"+"".join(rec_buf))
+                        try:
+                            # write rec to file
+                            paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+                        except:
+                            raise ValueError ("Failed to write read rec "+last_read_id+"\n"+"".join(insilico_read_rec_buf))
+
+                        paired_cnt += 1
+                        if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
+                            self.log(console,"\t"+str(paired_cnt)+" recs processed")
+                    else:
+                        #unpaired_fwd_buf.extend(rec_buf)
+                        pass
+                    rec_buf = []
+
+            for output_handle in paired_output_reads_file_handles:
+                output_handle.close()
+
+            self.log(console,"\t"+str(paired_cnt)+" FWD recs processed")
+
+
+            # split rev paired
+            self.log (console, "WRITING REV SPLIT PAIRED")  # DEBUG
+            paired_output_reads_file_handles = []
+            for lib_i in range(params['subsample_fraction']['split_num']):
+                paired_output_reads_file_handles.append(open (output_rev_paired_file_path_base+"-"+str(lib_i)+".fastq", 'w', paired_buf_size))
+
+            rec_buf = []
+            last_read_id = None
+            paired_cnt = 0
+            capture_type_paired = False
+
+            with open (input_rev_file_path, 'r') as input_reads_file_handle:
+                rec_line_i = -1
+                for line in input_reads_file_handle:
+                    rec_line_i += 1
+                    if rec_line_i == 3:
+                        rec_line_i = -1
+                    elif rec_line_i == 0:
+                        if not line.startswith('@'):
+                            raise ValueError ("badly formatted rec line: '"+line+"'")
+                        if last_read_id != None:
+                            if capture_type_paired:
+                                try:
+                                    lib_i = paired_lib_i[last_read_id]
+                                except:
+                                    raise ValueError ("Failed to find lib for read rec "+last_read_id)
+
+                                #if paired_cnt % recs_beep_n == 0:
+                                #    self.log(console,"OLD REV READ:")  # DEBUG
+                                #    self.log(console,"\n".join(rec_buf)) # DEBUG
+
+                                try:
+                                    # replace read with source genome sequence
+                                    source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                                except:
+                                    raise ValueError ("Failed to find source genome for read rec "+last_read_id)
+
+                                try:
+                                    (unused, insilico_read_rec_buf) = self.overlay_source_genome_seq (read_rec=rec_buf, 
+                                        source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                                        contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                                        lib_type='PE',
+                                        read_dir='rev',
+                                        fwd_insilico_pos=fwd_insilico_position[last_read_id],
+                                        pe_orientation=params['pe_orientation'],
+                                        pe_insert_len=int(params['pe_insert_len']),
+                                        add_errors_by_qual_freq=True
+                                    )
+                                except:
+                                    raise ValueError ("Failed to transform read rec "+last_read_id+"\n"+"".join(rec_buf))
+
+                                #if paired_cnt % recs_beep_n == 0:
+                                #    self.log(console,"NEW REV READ:")  # DEBUG
+                                #    self.log(console,"\n".join(insilico_read_rec_buf)) # DEBUG
+
+                                try:
+                                    # write rec to file
+                                    paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+                                except:
+                                    raise ValueError ("Failed to write read rec "+last_read_id+"\n"+"".join(insilico_read_rec_buf))
+
+                                paired_cnt += 1
+                                if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
+                                    self.log(console,"\t"+str(paired_cnt)+" recs processed")
+                            else:
+                                #unpaired_fwd_buf.extend(rec_buf)
+                                pass
+                            rec_buf = []
+                        read_id = line.rstrip('\n')
+                        read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
+                        last_read_id = read_id
+                        try:
+                            found = paired_lib_i[read_id]
+                            capture_type_paired = True
+                        except:
+                            total_unpaired_rev_reads += 1
+                            capture_type_paired = False
+                    rec_buf.append(line)
+                # last rec
+                if len(rec_buf) > 0:
+                    if capture_type_paired:
+                        try:
+                            lib_i = paired_lib_i[last_read_id]
+                        except:
+                            raise ValueError ("Failed to find lib for read rec "+last_read_id)
+
+                        try:
+                            # replace read with source genome sequence
+                            source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                        except:
+                            raise ValueError ("Failed to find source genome for read rec "+last_read_id)
+
+                        try:
+                            (unused, insilico_read_rec_buf) = self.overlay_source_genome_seq (read_rec=rec_buf, 
+                                source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                                contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                                lib_type='PE',
+                                read_dir='rev',
+                                fwd_insilico_pos=fwd_insilico_position[last_read_id],
+                                pe_orientation=params['pe_orientation'],
+                                pe_insert_len=int(params['pe_insert_len']),
+                                add_errors_by_qual_freq=True
+                            )
+                        except:
+                            raise ValueError ("Failed to transform read rec "+last_read_id+"\n"+"".join(rec_buf))
+
+                        try:
+                            # write rec to file
+                            paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)
+                        except:
+                            raise ValueError ("Failed to write read rec "+last_read_id+"\n"+"".join(insilico_read_rec_buf))
+
+                        paired_cnt += 1
+                        if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
+                            self.log(console,"\t"+str(paired_cnt)+" recs processed")
+                    else:
+                        #unpaired_fwd_buf.extend(rec_buf)
+                        pass
+                    rec_buf = []
+
+            for output_handle in paired_output_reads_file_handles:
+                output_handle.close()
+
+            self.log(console,"\t"+str(paired_cnt)+" REV recs processed")
+
+
+            # store report
+            #
+            report += "TOTAL PAIRED READS: "+str(total_paired_reads)+"\n"
+            report += "TOTAL UNPAIRED FWD READS (discarded): "+str(total_unpaired_fwd_reads)+"\n"
+            report += "TOTAL UNPAIRED REV READS (discarded): "+str(total_unpaired_rev_reads)+"\n"
+            report += "\n"
+            for lib_i in range(params['subsample_fraction']['split_num']):
+                report += "PAIRED READS IN SET "+str(lib_i)+": "+str(total_paired_reads_by_set[lib_i])+"\n"
+
+
+            # upload paired reads
+            #
+            self.log (console, "UPLOAD In Silico PAIRED READS LIBS")  # DEBUG
+            paired_obj_refs = []
+            for lib_i in range(params['subsample_fraction']['split_num']):
+                output_fwd_paired_file_path = output_fwd_paired_file_path_base+"-"+str(lib_i)+".fastq"
+                output_rev_paired_file_path = output_rev_paired_file_path_base+"-"+str(lib_i)+".fastq"
+                if not os.path.isfile (output_fwd_paired_file_path) \
+                     or os.path.getsize (output_fwd_paired_file_path) == 0 \
+                   or not os.path.isfile (output_rev_paired_file_path) \
+                     or os.path.getsize (output_rev_paired_file_path) == 0:
+                    
+                    raise ValueError ("failed to create paired output")
+                else:
+                    output_obj_name = params['output_name']+'_paired-'+str(lib_i)
+                    self.log(console, 'Uploading paired reads: '+output_obj_name)
+                    paired_obj_refs.append (readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
+                                                                              'name': output_obj_name,
+                                                                              # remove sequencing_tech when source_reads_ref is working
+                                                                              #'sequencing_tech': sequencing_tech,
+                                                                              'source_reads_ref': input_reads_ref,
+                                                                              'fwd_file': output_fwd_paired_file_path,
+                                                                              'rev_file': output_rev_paired_file_path
+                                                                              })['obj_ref'])
+                    
+                
+
+        # SingleEndLibrary
+        #
+        elif input_reads_obj_type == "KBaseFile.SingleEndLibrary":
+            self.log(console, "Downloading Single End reads file...")
+
+            # Download reads Libs to FASTQ files
+            input_fwd_file_path = readsLibrary['files'][input_reads_ref]['files']['fwd']
+            sequencing_tech     = readsLibrary['files'][input_reads_ref]['sequencing_tech']
+
+            # file paths
+            input_fwd_path = re.sub ("\.fastq$", "", input_fwd_file_path)
+            input_fwd_path = re.sub ("\.FASTQ$", "", input_fwd_path)
+            output_fwd_paired_file_path_base   = input_fwd_path+"_fwd_paired"
+
+            # get "paired" ids
+            self.log (console, "DETERMINING IDS")  # DEBUG
+            total_paired_reads = 0
+            total_paired_reads_by_set = []
+            paired_ids = dict()
+            paired_ids_list = []
+            paired_lib_i = dict()
+            source_genome_i = dict()
+            read_ids_by_lib = []
+            paired_buf_size = 100000
+            recs_beep_n = 1000000
+
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
+                rec_line_i = -1
+                for line in input_reads_file_handle:
+                    rec_line_i += 1
+                    if rec_line_i == 3:
+                        rec_line_i = -1
+                    elif rec_line_i == 0:
+                        if not line.startswith('@'):
+                            raise ValueError ("badly formatted rec line: '"+line+"'")
+                        read_id = line.rstrip('\n')
+                        read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
+                        if read_id in paired_ids:
+                            self.log (console, "WARNING: repeat read_id "+read_id+" in reads library "+input_reads_obj_name)
+                        paired_ids[read_id] = True
+                        paired_ids_list.append(read_id)
+                        # DEBUG
+#                        if rec_cnt % 100 == 0:
+#                            self.log(console,"read_id: '"+str(read_id)+"'")
+#                        rec_cnt += 1 
+            total_paired_reads = len(paired_ids_list)
+            self.log (console, "TOTAL READS CNT: "+str(total_paired_reads))  # DEBUG
+
+
+            # Determine sublibrary sizes
+            if use_reads_num:
+                reads_per_lib = params['subsample_fraction']['reads_num']
+                if reads_per_lib > total_paired_reads // params['subsample_fraction']['split_num']:
+                    raise ValueError ("must specify reads_num <= total_reads_cnt / split_num.  You have reads_num:"+str(params['subsample_fraction']['reads_num'])+" > total_reads_cnt:"+str(total_paired_reads)+" / split_num:"+str(params['subsample_fraction']['split_num'])+".  Instead try reads_num <= "+str(total_paired_reads // params['subsample_fraction']['split_num']))
+            elif use_reads_perc:
+                reads_per_lib = int ((params['subsample_fraction']['reads_perc']/100.0) * total_paired_reads)
+                if reads_per_lib > total_paired_reads // params['subsample_fraction']['split_num']:
+                    raise ValueError ("must specify reads_perc <= 1 / split_num.  You have reads_perc:"+str(params['subsample_fraction']['reads_perc'])+" > 1 / split_num:"+str(params['subsample_fraction']['split_num'])+".  Instead try reads_perc <= "+ str(int(100 * 1/params['subsample_fraction']['split_num'])))
+            else:
+                raise ValueError ("error in logic reads_num vs. reads_perc logic")
+
+            
+            # Determine random membership in each sublibrary
+            self.log (console, "GETTING RANDOM READ SUBSAMPLES")  # DEBUG
+            for lib_i in range(int(params['subsample_fraction']['split_num'])):
+                read_ids_by_lib.append([])
+            for i,read_id in enumerate(random.sample (paired_ids_list, reads_per_lib * params['subsample_fraction']['split_num'])):
+                if read_id not in paired_lib_i:
+                    lib_i = i % int(params['subsample_fraction']['split_num'])
+                    paired_lib_i[read_id] = lib_i
+                    read_ids_by_lib[lib_i].append(read_id)
+                else:
+                    raise ValueError ("repeated random sample for read id "+read_id)
+            for read_id in paired_ids_list:
+                if read_id not in paired_lib_i:
+                    raise ValueError ("failed to assign output lib for read id "+read_id)
+
+            # Determine random source genome for each read
+            self.log (console, "GETTING RANDOM GENOME SOURCE ASSIGNMENT FOR READS")  # DEBUG
+            for lib_i in range(len(read_ids_by_lib)):
+                for read_i,genome_lookup_i_map in enumerate(random.sample (genome_lookup, reads_per_lib)):
+                    source_genome_i[read_ids_by_lib[lib_i][read_i]] = genome_lookup_i_map
+
+
+            # split reads
+            self.log (console, "WRITING SPLIT SINGLE END READS")  # DEBUG
+            paired_output_reads_file_handles = []
+            for lib_i in range(params['subsample_fraction']['split_num']):
+                paired_output_reads_file_handles.append(open (output_fwd_paired_file_path_base+"-"+str(lib_i)+".fastq", 'w', paired_buf_size))
+                total_paired_reads_by_set.append(0)
+
+            rec_buf = []
+            last_read_id = None
+            paired_cnt = 0
+            recs_beep_n = 1000000
+            with open (input_fwd_file_path, 'r') as input_reads_file_handle:
+                rec_line_i = -1
+                for line in input_reads_file_handle:
+                    rec_line_i += 1
+                    if rec_line_i == 3:
+                        rec_line_i = -1
+                    elif rec_line_i == 0:
+                        if not line.startswith('@'):
+                            raise ValueError ("badly formatted rec line: '"+line+"'")
+                        total_paired_reads += 1
+                        if last_read_id != None:
+                            try:
+                                lib_i = paired_lib_i[last_read_id]
+                            except:
+                                raise ValueError ("Failed to find lib for read rec "+last_read_id)
+
+                            # DEBUG
+                            print ("LIB_I: "+str(lib_i)+" LAST_READ_ID: "+last_read_id)
+
+                            #if paired_cnt % recs_beep_n == 0:
+                            #    self.log(console,"OLD FWD READ:")  # DEBUG
+                            #    self.log(console,"\n".join(rec_buf)) # DEBUG
+
+                            try:
+                                # replace read with source genome sequence
+                                source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                            except:
+                                raise ValueError ("Failed to find source genome for read rec "+last_read_id)
+
+                            try:
+                                (unused, insilico_read_rec_buf) = self.overlay_source_genome_seq (
+                                    read_rec=rec_buf, 
+                                    source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                                    contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                                    lib_type='SE',
+                                    read_dir='fwd',
+                                    fwd_insilico_pos=None,
+                                    pe_orientation=None,
+                                    pe_insert_len=None,
+                                    add_errors_by_qual_freq=True
+                                )
+                            except:
+                                raise ValueError ("Failed to transform read rec "+last_read_id+"\n"+"".join(rec_buf))
+
+                            #if paired_cnt % recs_beep_n == 0:
+                            #    self.log(console,"NEW FWD READ:")  # DEBUG
+                            #    self.log(console,"\n".join(insilico_read_rec_buf)) # DEBUG
+
+                            try:
+                                # write rec to file
+                                paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)                                
+                            except:
+                                raise ValueError ("Failed to write read rec "+last_read_id+"\n"+"".join(insilico_read_rec_buf))
+                                
+                            paired_cnt += 1
+                            total_paired_reads_by_set[lib_i] += 1
+                            if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
+                                self.log(console,"\t"+str(paired_cnt)+" recs processed")
+                            rec_buf = []
+
+                        read_id = line.rstrip('\n')
+                        read_id = re.sub ("[ \t]+.*$", "", read_id)
+                        read_id = re.sub ("[\/\.\_\-\:\;][012lrLRfrFR53]\'*$", "", read_id)
+                        last_read_id = read_id
+                    rec_buf.append(line)
+                # last rec
+                if len(rec_buf) > 0:
+                    if last_read_id != None:
+                        try:
+                            lib_i = paired_lib_i[last_read_id]
+                        except:
+                            raise ValueError ("Failed to find lib for read rec "+last_read_id)
+
+                        # DEBUG
+                        print ("LIB_I: "+str(lib_i)+" LAST_READ_ID: "+last_read_id)
+
+                        try:
+                            # replace read with source genome sequence
+                            source_genome_ref = genome_ref_order[source_genome_i[last_read_id]]
+                        except:
+                            raise ValueError ("Failed to find source genome for read rec "+last_read_id)
+
+                        try:
+                            (unused, insilico_read_rec_buf) = self.overlay_source_genome_seq (
+                                read_rec=rec_buf, 
+                                source_genome_buf=assembly_bufs_by_genome_ref[source_genome_ref],
+                                contig_mapping=contig_i_weighted_mapping_by_genome_ref[source_genome_ref],
+                                lib_type='SE',
+                                read_dir='fwd',
+                                fwd_insilico_pos=None,
+                                pe_orientation=None,
+                                pe_insert_len=None,
+                                add_errors_by_qual_freq=True
+                            )
+                        except:
+                            raise ValueError ("Failed to transform read rec "+last_read_id+"\n"+"".join(rec_buf))
+
+                        try:
+                            # write rec to file
+                            paired_output_reads_file_handles[lib_i].writelines(insilico_read_rec_buf)                                
+                        except:
+                            raise ValueError ("Failed to write read rec "+last_read_id+"\n"+"".join(insilico_read_rec_buf))
+                            
+                        paired_cnt += 1
+                        total_paired_reads_by_set[lib_i] += 1
+                        if paired_cnt != 0 and paired_cnt % recs_beep_n == 0:
+                            self.log(console,"\t"+str(paired_cnt)+" recs processed")
+                    rec_buf = []
+                    last_read_id = None
+
+            for output_handle in paired_output_reads_file_handles:
+                output_handle.close()
+
+
+            # store report
+            #
+            report += "TOTAL READS: "+str(total_paired_reads)+"\n"
+            for lib_i in range(params['subsample_fraction']['split_num']):
+                report += "SINGLE END READS IN SET "+str(lib_i)+": "+str(total_paired_reads_by_set[lib_i])+"\n"
+
+
+            # upload reads
+            #
+            self.log (console, "UPLOAD In Silico SINGLE END READS")  # DEBUG
+            paired_obj_refs = []
+            for lib_i in range(params['subsample_fraction']['split_num']):
+                output_fwd_paired_file_path = output_fwd_paired_file_path_base+"-"+str(lib_i)+".fastq"
+                if not os.path.isfile (output_fwd_paired_file_path) \
+                        or os.path.getsize (output_fwd_paired_file_path) == 0:
+                    
+                    raise ValueError ("failed to create single end library output")
+                else:
+                    output_obj_name = params['output_name']+'-'+str(lib_i)
+                    self.log(console, 'Uploading single end reads: '+output_obj_name)
+                    paired_obj_refs.append (readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
+                                                                              'name': output_obj_name,
+                                                                              # remove sequencing_tech when source_reads_ref is working
+                                                                              #'sequencing_tech': sequencing_tech,
+                                                                              'source_reads_ref': input_reads_ref,
+                                                                              'fwd_file': output_fwd_paired_file_path
+                                                                              })['obj_ref'])
+                                            
+        else:
+            raise ValueError ("unknown ReadLibrary type as input: "+str(input_reads_obj_type))
+
+
+        # save output readsSet
+        #
+        self.log (console, "SAVING READSSET")  # DEBUG
+        items = []
+        for lib_i,lib_ref in enumerate(paired_obj_refs):
+            label = params['output_name']+'-'+str(lib_i)
+            items.append({'ref': lib_ref,
+                          'label': label
+                          #'data_attachment': ,
+                          #'info':
+                              })
+        description = params['desc']
+        output_readsSet_obj = { 'description': params['desc'],
+                                'items': items
+                                }
+        output_readsSet_name = str(params['output_name'])
+        readsSet_ref = setAPI_Client.save_reads_set_v1 ({'workspace_name': params['workspace_name'],
+                                                         'output_object_name': output_readsSet_name,
+                                                         'data': output_readsSet_obj
+                                                         })['set_ref']
+                              
+
+        # build report
+        #
+        self.log (console, "SAVING REPORT")  # DEBUG        
+        reportObj = {'objects_created':[], 
+                     'text_message': report}
+
+        reportObj['objects_created'].append({'ref':readsSet_ref,
+                                             'description':params['desc']})
+
+
+        # save report object
+        #
+        report_info = reportClient.create({'report':reportObj, 'workspace_name':params['workspace_name']})
+
+        returnVal = { 'report_name': report_info['name'], 'report_ref': report_info['ref'] }
+        #END KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads
+
+        # At some point might do deeper type checking...
+        if not isinstance(returnVal, dict):
+            raise ValueError('Method KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads return value ' +
+                             'returnVal is not type dict as required.')
+        # return the results
+        return [returnVal]
+
+    def KButil_Fractionate_Reads_by_Contigs(self, ctx, params):
+        """
+        :param params: instance of type
+           "KButil_Fractionate_Reads_by_Contigs_Params"
+           (KButil_Fractionate_Reads_by_Contigs() ** **  Split reads library
+           into two based on whether they match contigs) -> structure:
+           parameter "workspace_name" of type "workspace_name" (** The
+           workspace object refs are of form: ** **    objects =
+           ws.get_objects([{'ref':
+           params['workspace_id']+'/'+params['obj_name']}]) ** ** "ref" means
+           the entire name combining the workspace id and the object name **
+           "id" is a numerical identifier of the workspace or object, and
+           should just be used for workspace ** "name" is a string identifier
+           of a workspace or object.  This is received from Narrative.),
+           parameter "input_reads_ref" of type "data_obj_ref", parameter
+           "input_assembly_ref" of type "data_obj_ref", parameter
+           "output_name" of type "data_obj_name", parameter
+           "fractionate_mode" of String
+        :returns: instance of type
+           "KButil_Fractionate_Reads_by_Contigs_Output" -> structure:
+           parameter "report_name" of type "data_obj_name", parameter
+           "report_ref" of type "data_obj_ref", parameter
+           "source_reads_count" of Long, parameter "positive_reads_count" of
+           Long, parameter "negative_reads_count" of Long, parameter
+           "source_reads_sum_length" of Long, parameter
+           "positive_reads_sum_length" of Long, parameter
+           "negative_reads_sum_length" of Long
+        """
+        # ctx is the context object
+        # return variables are: returnVal
+        #BEGIN KButil_Fractionate_Reads_by_Contigs
+
+        # very strange, re import from above isn't being retained in this scope
+        import re
+
+        #### Step 0: basic init
+        ##
+        console = []
+        invalid_msgs = []
+        report_text = ''
+        self.log(console, 'Running run_fractionate_contigs(): ')
+        self.log(console, "\n"+pformat(params))
+
+        # Auth
+        token = ctx['token']
+        headers = {'Authorization': 'OAuth '+token}
+        env = os.environ.copy()
+        env['KB_AUTH_TOKEN'] = token
+
+        # API Clients
+        #SERVICE_VER = 'dev'  # DEBUG
+        SERVICE_VER = 'release'
+        # wsClient
+        try:
+            wsClient = Workspace(self.workspaceURL, token=token)
+        except Exception as e:
+            raise ValueError('Unable to instantiate wsClient with workspaceURL: '+ self.workspaceURL +' ERROR: ' + str(e))
+        # dfuClient
+        try:
+            dfuClient = DataFileUtil(self.callbackURL)
+        except Exception as e:
+            raise ValueError('Unable to instantiate dfuClient with callbackURL: '+ self.callbackURL +' ERROR: ' + str(e))
+        # gfuClient
+        try:
+            gfuClient = GenomeFileUtil(self.callbackURL)
+        except Exception as e:
+            raise ValueError('Unable to instantiate gfuClient with callbackURL: '+ self.callbackURL +' ERROR: ' + str(e))
+        # setAPI_Client
+        try:
+            #setAPI_Client = SetAPI (url=self.callbackURL, token=ctx['token'])  # for SDK local.  local doesn't work for SetAPI
+            setAPI_Client = SetAPI (url=self.serviceWizardURL, token=ctx['token'])  # for dynamic service
+        except Exception as e:
+            raise ValueError('Unable to instantiate setAPI_Client with serviceWizardURL: '+ self.serviceWizardURL +' ERROR: ' + str(e))
+        # auClient
+        try:
+            auClient = AssemblyUtil(self.callbackURL, token=ctx['token'], service_ver=SERVICE_VER)
+        except Exception as e:
+            raise ValueError('Unable to instantiate auClient with callbackURL: '+ self.callbackURL +' ERROR: ' + str(e))
+
+        # param checks
+        required_params = ['workspace_name',
+                           'input_reads_ref',
+                           'input_assembly_ref',
+                           'fractionate_mode',
+                           'output_name'
+                          ]
+        for arg in required_params:
+            if arg not in params or params[arg] == None or params[arg] == '':
+                raise ValueError ("Must define required param: '"+arg+"'")
+
+        # load provenance
+        provenance = [{}]
+        if 'provenance' in ctx:
+            provenance = ctx['provenance']
+        provenance[0]['input_ws_objects']=[]
+        provenance[0]['input_ws_objects'].append(params['input_reads_ref'])
+        provenance[0]['input_ws_objects'].append(params['input_assembly_ref'])
+
+        # set the output paths
+        timestamp = int((datetime.utcnow() - datetime.utcfromtimestamp(0)).total_seconds()*1000)
+        output_dir = os.path.join(self.scratch,'output.'+str(timestamp))
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        html_output_dir = os.path.join(output_dir,'html')
+        if not os.path.exists(html_output_dir):
+            os.makedirs(html_output_dir)
+
+        # obj info fields
+        [OBJID_I, NAME_I, TYPE_I, SAVE_DATE_I, VERSION_I, SAVED_BY_I, WSID_I, WORKSPACE_I, CHSUM_I, SIZE_I, META_I] = range(11)  # object_info tuple
+            
+        # configure data types
+        assembly_obj_type = "KBaseGenomeAnnotations.Assembly"
+        #assembly_set_obj_type = "KBaseSets.AssemblySet"
+        genome_obj_type = "KBaseGenomes.Genome"
+        #genome_set_obj_type = "KBaseSearch.GenomeSet"
+        #binned_contigs_obj_type = "KBaseMetagenomes.BinnedContigs"
+        ama_assembly_obj_type = "KBaseMetagenomes.AnnotatedMetagenomeAssembly"
+
+            
+        #### STEP 1: Get assembly to fractionate as file
+        ##
+        input_assembly_name = None
+        input_assembly_type = None
+        contig_file_path = None
+        gff_file_path = None
+        src_contig_ids = []
+
+        if len(invalid_msgs) == 0:
+            self.log (console, "Retrieving Assembly for pos filter")  # DEBUG
+
+            # assembly obj info
+            input_ref = params['input_assembly_ref']
+            accepted_input_types = [assembly_obj_type, ama_assembly_obj_type]
+            try:
+                #input_obj_info = wsClient.get_object_info_new ({'objects':[{'ref':input_ref}]})[0]
+                assembly_obj = wsClient.get_objects2({'objects':[{'ref':input_ref}]})['data'][0]
+                input_obj_data = assembly_obj['data']
+                input_obj_info = assembly_obj['info']
+
+                input_obj_type = re.sub ('-[0-9]+\.[0-9]+$', "", input_obj_info[TYPE_I])  # remove trailing version
+                input_obj_name = input_obj_info[NAME_I]
+            except Exception as e:
+                raise ValueError('Unable to get object from workspace: (' + input_ref +'): ' + str(e))
+
+            #self.log(console, "\nASSEMBLY_OBJ:\n"+pformat(input_obj_data))  # DEBUG
+            input_assembly_type = input_obj_type
+            input_assembly_name = input_obj_name
+
+            if input_obj_type not in accepted_input_types:
+                raise ValueError ("Input object of type '"+input_obj_type+"' not accepted.  Must be one of "+", ".join(accepted_input_types))
+
+            # Assembly type
+            if input_obj_type == assembly_obj_type:
+                self.log(console, "getting contigs for Assembly "+input_obj_name)
+                for contig_key in sorted (input_obj_data['contigs'].keys()):
+                    src_contig_ids.append(input_obj_data['contigs'][contig_key]['contig_id'])
+
+                contig_file = auClient.get_assembly_as_fasta({'ref':input_ref}).get('path')
+                sys.stdout.flush()
+                contig_file_path = dfuClient.unpack_file({'file_path': contig_file})['file_path']
+
+                
+            # AnnotatedMetagenomeAssembly type
+            else:
+                self.log(console, "getting contigs for AnnotatedMetagenomeAssembly "+input_obj_name)
+                src_contig_ids.extend(input_obj_data['contig_ids'])
+
+                contig_file = auClient.get_fastas({'ref_lst':[input_ref]})[input_ref]['paths'][0]
+                sys.stdout.flush()
+                contig_file_path = dfuClient.unpack_file({'file_path': contig_file})['file_path']
+                gff_file = gfuClient.metagenome_to_gff({'metagenome_ref':input_ref}).get('file_path')
+                sys.stdout.flush()
+                gff_file_path = dfuClient.unpack_file({'file_path': gff_file})['file_path']
+
+
+        #### STEP 2: get positive filter object contig IDs as contig files
+        ##
+        if len(invalid_msgs) == 0:
+
+            accepted_input_types = [assembly_obj_type,
+                                    assembly_set_obj_type,
+                                    genome_obj_type,
+                                    genome_set_obj_type,
+                                    binned_contigs_obj_type,
+                                    ama_assembly_obj_type]
+            pos_filter_contig_ids = dict()
+        
+            for i,input_ref in enumerate(params['input_pos_filter_obj_refs']):
+                # get object
+                try:
+                    #input_obj_info = wsClient.get_object_info_new ({'objects':[{'ref':input_ref}]})[0]
+                    input_obj = wsClient.get_objects2({'objects':[{'ref':input_ref}]})['data'][0]
+                    input_obj_data = input_obj['data']
+                    input_obj_info = input_obj['info']
+                    input_obj_type = re.sub ('-[0-9]+\.[0-9]+$', "", input_obj_info[TYPE_I])  # remove trailing version
+                    input_obj_name = input_obj_info[NAME_I]
+                except Exception as e:
+                    raise ValueError('Unable to get object from workspace: (' + input_ref +'): ' + str(e))
+                if input_obj_type not in accepted_input_types:
+                    raise ValueError ("Input object "+input_obj_name+" of type '"+input_obj_type+"' not accepted.  Must be one of "+", ".join(accepted_input_types))
+
+                # Assembly
+                if input_obj_type == assembly_obj_type:
+                    for contig_key in input_obj_data['contigs'].keys():
+                        pos_filter_contig_ids[input_obj_data['contigs'][contig_key]['contig_id']] = True
+
+                # Genome or AnnotatedMetagenomeAssembly
+                elif input_obj_type == genome_obj_type \
+                     or input_obj_type == ama_assembly_obj_type:
+
+                    for contig_id in input_obj_data['contig_ids']:
+                        pos_filter_contig_ids[contig_id] = True
+
+                # AssemblySet
+                elif input_obj_type == assembly_set_obj_type:
+                    try:
+                        set_obj = setAPI_Client.get_assembly_set_v1 ({'ref':input_ref, 'include_item_info':1})
+                    except Exception as e:
+                        raise ValueError('Unable to get object '+input_obj_name+' from workspace: (' + input_ref +')' + str(e))
+
+                    for item_obj in set_obj['data']['items']:
+                        this_input_ref = item_obj['ref']
+                        try:
+                            this_input_obj = wsClient.get_objects2({'objects':[{'ref':this_input_ref}]})['data'][0]
+                            this_input_obj_data = this_input_obj['data']
+                        except Exception as e:
+                            raise ValueError('Unable to get object from workspace: (' + this_input_ref +'): ' + str(e))
+                        for contig_key in this_input_obj_data['contigs'].keys():
+                            pos_filter_contig_ids[this_input_obj_data['contigs'][contig_key]['contig_id']] = True
+
+                # GenomeSet
+                elif input_obj_type == genome_set_obj_type:
+                    # use SetAPI when it sends back 'items' for KBaseSearch.GenomeSet
+                    #try:
+                    #    set_obj = setAPI_Client.get_genome_set_v1 ({'ref':input_ref, 'include_item_info':1})
+                    #except Exception as e:
+                    #    raise ValueError('Unable to get object '+input_obj_name+' from workspace: (' + input_ref +')' + str(e))
+                    # for now use this mimic to get the same 'items' structure
+                    set_obj = wsClient.get_objects2({'objects':[{'ref':input_ref}]})['data'][0]
+                    set_obj['data']['items'] = []
+                    for element_key in set_obj['data']['elements'].keys():
+                        set_obj['data']['items'].append(set_obj['data']['elements'][element_key])
+
+                    for item_obj in set_obj['data']['items']:
+                        this_input_ref = item_obj['ref']
+                        try:
+                            this_input_obj = wsClient.get_objects2({'objects':[{'ref':this_input_ref}]})['data'][0]
+                            this_input_obj_data = this_input_obj['data']
+                        except Exception as e:
+                            raise ValueError('Unable to get object from workspace: (' + this_input_ref +'): ' + str(e))
+                        for contig_id in this_input_obj_data['contig_ids']:
+                            pos_filter_contig_ids[contig_id] = True
+
+                # BinnedContigs
+                elif input_obj_type == binned_contigs_obj_type:
+                    for bin in input_obj_data['bins']:
+                        for contig_id in bin['contigs'].keys():
+                            pos_filter_contig_ids[contig_id] = True
+                
+                else:
+                    raise ValueError ("data type "+input_obj_type+" for object "+input_obj_name+" not handled")
+                    
+
+        #### STEP 3: Determine pos and neg contig ids.
+        ## Note: pos_contig_ids may be smaller than pos_filter_contig_ids
+        ##
+        if len(invalid_msgs) == 0:
+            pos_contig_ids = dict()
+            neg_contig_ids = dict()
+            if len(invalid_msgs) == 0:
+                self.log (console, "Filtering Contig IDs")
+                for contig_id in src_contig_ids:
+                    if pos_filter_contig_ids.get(contig_id):
+                        pos_contig_ids[contig_id] = True
+                    else:
+                        neg_contig_ids[contig_id] = True
+
+
+        #### STEP 4: Create pos and neg output files
+        ##
+        if len(invalid_msgs) == 0:
+            pos_contig_file_path = None
+            neg_contig_file_path = None
+            orig_contig_count = 0
+            pos_contig_count = 0
+            neg_contig_count = 0
+            orig_contig_len = 0
+            pos_contig_len = 0
+            neg_contig_len = 0
+
+            self.log (console, "Fractionating contigs in assembly: "+input_assembly_name)
+            pos_contig_file_path = contig_file_path+".positive_fraction.fa"
+            neg_contig_file_path = contig_file_path+".negative_fraction.fa"
+            with open (contig_file_path, 'r') as src_handle, \
+                 open (pos_contig_file_path, 'w') as pos_handle, \
+                 open (neg_contig_file_path, 'w') as neg_handle:
+                seq_buf = ''
+                last_header = ''
+                for fasta_line in src_handle:
+                    if fasta_line.startswith('>'):
+                        if seq_buf != '':
+                            seq_len = len(seq_buf)
+                            orig_contig_count += 1
+                            orig_contig_len += seq_len
+                            contig_id = last_header.split()[0].replace('>','')
+                            if pos_contig_ids.get(contig_id):
+                                pos_contig_count += 1
+                                pos_contig_len += seq_len
+                                pos_handle.write(last_header)  # last_header already has newline
+                                pos_handle.write(seq_buf+"\n")
+                            else:
+                                neg_contig_count += 1
+                                neg_contig_len += seq_len
+                                neg_handle.write(last_header)  # last_header already has newline
+                                neg_handle.write(seq_buf+"\n")
+                        seq_buf = ''
+                        last_header = fasta_line
+                    else:
+                        seq_buf += ''.join(fasta_line.split())
+                # last rec
+                if seq_buf != '':
+                    seq_len = len(seq_buf)
+                    orig_contig_count += 1
+                    orig_contig_len += seq_len
+                    contig_id = last_header.split()[0].replace('>','')
+                    if pos_contig_ids.get(contig_id):
+                        pos_contig_count += 1
+                        pos_contig_len += seq_len
+                        pos_handle.write(last_header)  # last_header already has newline
+                        pos_handle.write(seq_buf+"\n")
+                    else:
+                        neg_contig_count += 1
+                        neg_contig_len += seq_len
+                        neg_handle.write(last_header)  # last_header already has newline
+                        neg_handle.write(seq_buf+"\n")
+                    seq_buf = ''
+                    last_header = ''
+
+
+        #### STEP 5: for AnnotatedMetagenomeAssembly input, Create pos and neg gff output files
+        ##
+        if len(invalid_msgs) == 0 and input_assembly_type == ama_assembly_obj_type:
+            pos_gff_file_path = None
+            neg_gff_file_path = None
+            orig_feature_count = 0
+            pos_feature_count = 0
+            neg_feature_count = 0
+
+            self.log (console, "Fractionating genes in AnnotatedMetagenomeAssembly: "+input_assembly_name)
+            pos_gff_file_path = contig_file_path+".positive_fraction.gff"
+            neg_gff_file_path = contig_file_path+".negative_fraction.gff"
+            with open (gff_file_path, 'r') as src_handle, \
+                 open (pos_gff_file_path, 'w') as pos_handle, \
+                 open (neg_gff_file_path, 'w') as neg_handle:
+
+                for gff_line in src_handle:
+                    if gff_line.startswith('#'):
+                        pos_handle.write(gff_line)  # gff_line already has newline
+                        neg_handle.write(gff_line)
+                    else:
+                        orig_feature_count += 1
+                        contig_id = gff_line.split()[0]
+                        if pos_contig_ids.get(contig_id):
+                            pos_handle.write(gff_line)  # gff_line already has newline
+                            pos_feature_count += 1
+                        else:
+                            neg_handle.write(gff_line)  # gff_line already has newline
+                            neg_feature_count += 1
+            
+                            
+        #### STEP 6: save the fractionated assemblies
+        ##
+        if pos_contig_count == 0 and neg_contig_count == 0:
+            self.log (invalid_msgs, "Contig IDs don't match between "+input_assembly_name+" and positive filter objects.")
+        if pos_contig_count == 0:
+            self.log (invalid_msgs, "No positive matches for Contig IDs.  Fractionation is unnecessary.")
+        if neg_contig_count == 0:
+            self.log (invalid_msgs, "No negative matches for Contig IDs.  Fractionation is unnecessary.")
+
+        if len(invalid_msgs) == 0:
+            fractionated_obj_refs = []
+            fractionated_obj_names = []
+
+            # Pos fraction
+            if not params.get('fractionate_mode') \
+               or params['fractionate_mode'] == 'both' \
+               or params['fractionate_mode'] == 'pos':
+
+                if params.get('fractionate_mode') == 'pos':
+                    output_obj_name = params['output_name']
+                else:
+                    output_obj_name = params['output_name']+'-positive_fraction'
+
+                if input_assembly_type == assembly_obj_type:
+                    output_data_ref = auClient.save_assembly_from_fasta({
+                        'file': {'path': pos_contig_file_path},
+                        'workspace_name': params['workspace_name'],
+                        'assembly_name': output_obj_name
+                    })
+                elif input_assembly_type == ama_assembly_obj_type:
+                    output_data_ref = gfuClient.fasta_gff_to_metagenome({
+                        'fasta_file': {'path': pos_contig_file_path},
+                        'gff_file': {'path': pos_gff_file_path},
+                        'source': 'GFF',
+                        'generate_missing_genes': 1,
+                        'scientific_name': output_obj_name,  # not used
+                        'workspace_name': params['workspace_name'],
+                        'genome_name': output_obj_name
+                    })['metagenome_ref']
+                else:
+                    raise ValueError("unknown type "+input_assembly_type)
+
+                fractionated_obj_refs.append(output_data_ref)
+                fractionated_obj_names.append(output_obj_name)
+
+            # Neg fraction
+            if not params.get('fractionate_mode') \
+               or params['fractionate_mode'] == 'both' \
+               or params['fractionate_mode'] == 'neg':
+
+                if params.get('fractionate_mode') == 'neg':
+                    output_obj_name = params['output_name']
+                else:
+                    output_obj_name = params['output_name']+'-negative_fraction'
+
+                if input_assembly_type == assembly_obj_type:
+                    output_data_ref = auClient.save_assembly_from_fasta({
+                        'file': {'path': neg_contig_file_path},
+                        'workspace_name': params['workspace_name'],
+                        'assembly_name': output_obj_name
+                    })
+                elif input_assembly_type == ama_assembly_obj_type:
+                    output_data_ref = gfuClient.fasta_gff_to_metagenome({
+                        'fasta_file': {'path': neg_contig_file_path},
+                        'gff_file': {'path': neg_gff_file_path},
+                        'source': 'GFF',
+                        'generate_missing_genes': 1,
+                        'scientific_name': output_obj_name,  # not used
+                        'workspace_name': params['workspace_name'],
+                        'genome_name': output_obj_name
+                    })['metagenome_ref']
+                else:
+                    raise ValueError("unknown type "+input_assembly_type)
+
+                fractionated_obj_refs.append(output_data_ref)
+                fractionated_obj_names.append(output_obj_name)
+
+
+        #### STEP 7: generate and save the report
+        ##
+        if len(invalid_msgs) > 0:
+            report_text += "\n".join(invalid_msgs)
+            objects_created = []
+        else:
+            # report text
+            report_text += 'Assembly '+input_assembly_name+"\n"
+            report_text += "\t"+'ORIGINAL contig count: '+str(orig_contig_count)+"\n"
+            report_text += "\t"+'ORIGINAL contig length sum: '+str(orig_contig_len)+"\n"
+            if input_assembly_type == ama_assembly_obj_type:
+                report_text += "\t"+'ORIGINAL feature count: '+str(orig_feature_count)+"\n"
+            report_text += "\n"
+            report_text += "\t"+'POSITIVE FRACTION contig count: '+str(pos_contig_count)+"\n"
+            report_text += "\t"+'POSITIVE FRACTION contig length sum: '+str(pos_contig_len)+"\n"
+            if input_assembly_type == ama_assembly_obj_type:
+                report_text += "\t"+'POSITIVE FRACTION feature count: '+str(pos_feature_count)+"\n"
+            report_text += "\n"
+            report_text += "\t"+'NEGATIVE FRACTION contig count: '+str(neg_contig_count)+"\n"
+            report_text += "\t"+'NEGATIVE FRACTION contig length sum: '+str(neg_contig_len)+"\n"
+            if input_assembly_type == ama_assembly_obj_type:
+                report_text += "\t"+'NEGATIVE FRACTION feature count: '+str(neg_feature_count)+"\n"
+
+            # created objects
+            objects_created = []
+            for ass_i,fractionated_obj_ref in enumerate(fractionated_obj_refs):
+                objects_created.append({'ref': fractionated_obj_ref, 'description': fractionated_obj_names[ass_i]+" fractionated contigs"})
+
+        # Save report
+        print('Saving report')
+        kbr = KBaseReport(self.callbackURL)
+        try:
+            report_info = kbr.create_extended_report(
+                {'message': report_text,
+                 'objects_created': objects_created,
+                 'direct_html_link_index': None,
+                 'html_links': [],
+                 'file_links': [],
+                 'report_object_name': 'kb_fractionate_contigs_report_' + str(uuid.uuid4()),
+                 'workspace_name': params['workspace_name']
+                 })
+        #except _RepError as re:
+        except Exception as re:
+            # not really any way to test this, all inputs have been checked earlier and should be
+            # ok 
+            print('Logging exception from creating report object')
+            print(str(re))
+            # TODO delete shock node
+            raise
+
+        # STEP 6: contruct the output to send back
+        output_info = {'report_name': report_info['name'],
+                       'report_ref': report_info['ref'],
+                       'source_contigs_count': orig_contig_count,
+                       'positive_contigs_count': pos_contig_count,
+                       'negative_contigs_count': neg_contig_count,
+                       'source_contigs_sum_length': orig_contig_len,
+                       'positive_contigs_sum_length': pos_contig_len,
+                       'negative_contigs_sum_length': neg_contig_len
+        }
+        if input_assembly_type == ama_assembly_obj_type:
+            output_info['source_contigs_feature_count'] = orig_feature_count
+            output_info['positive_contigs_feature_count'] = pos_feature_count
+            output_info['negative_contigs_feature_count'] = neg_feature_count
+            
+        returnVal = output_info
+
+        #END KButil_Fractionate_Reads_by_Contigs
+
+        # At some point might do deeper type checking...
+        if not isinstance(returnVal, dict):
+            raise ValueError('Method KButil_Fractionate_Reads_by_Contigs return value ' +
                              'returnVal is not type dict as required.')
         # return the results
         return [returnVal]

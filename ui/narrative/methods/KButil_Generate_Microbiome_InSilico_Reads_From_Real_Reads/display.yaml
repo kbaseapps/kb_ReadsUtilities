@@ -1,0 +1,123 @@
+#
+# define display information
+#
+name: Generate Microbiome InSilico Reads - v1.2.0
+tooltip: |
+    Split a Reads Library into a set of randomly subsampled Reads Libraries and overlays configured Genome sequence
+screenshots: []
+
+icon: kb-pink.png
+
+#
+# define a set of similar methods that might be useful to the user
+#
+suggestions:
+    apps:
+        related:
+            []
+        next:
+            []
+    methods:
+        related:
+            []
+        next:
+            []
+
+#
+# Configure the display and description of parameters
+#
+parameters :
+    desc:
+        ui-name : |
+            Description
+        short-hint : |
+            Describe Purpose or Contents of Output ReadsSet
+        placeholder: |
+            Enter Description
+    input_genomeSet_ref:
+        ui-name : |
+            Source Genome Set
+        short-hint : |
+            Genomes from which to draw sequence
+    genome_abundances:
+        ui-name : |
+            Source Genomes Abundance
+        short-hint : |
+            Fractional representation of each lineage in microbiome
+    input_reads_ref:
+        ui-name : |
+            Reads library
+        short-hint : |
+            Reads Library Name here (SingleEndLibrary or PairedEndLibrary)
+    output_name:
+        ui-name : |
+            Output readsSet name
+        short-hint : |
+            Name for the Output ReadsSet
+    split_num:
+        ui-name : |
+            Sample number
+        short-hint : |
+            Number of Sample Output Libraries
+    reads_num:
+        ui-name : |
+            Num reads
+        short-hint : |
+            Number of reads to put into each library sample
+    reads_perc:
+        ui-name : |
+            or Perc reads (1-100)
+        short-hint : |
+            Percentage of original reads library to put into each sample library
+    genome_length_bias:
+        ui-name : |
+            Source Genome Length Bias
+        short-hint : |
+            Bias sampling from source genomes using genome length
+    pe_insert_len:
+        ui-name : |
+            PairedEnd Insert Length
+        short-hint : |
+            If source reads are paired-end, what is the insert length (includes length of reads, so F_len+gap+R_len)
+    pe_orientation:
+        ui-name : |
+            PairedEnd orientation
+        short-hint : |
+            If source reads are paired-end, are fwd and rev reads pointing in (e.g. Illumina) or another relative orientation
+    seed:
+        ui-name : |
+            Random Seed (optional)
+        short-hint : |
+            Specify seed for Randomizer if you want repeatable results
+
+parameter-groups :
+    subsample_fraction :
+        ui-name: |
+            Subsample Fraction
+        short-hint : |
+            Either provide number of reads per sublibrary or percentage of original library (or just number of split libraries to capture all reads)
+
+description : |
+    <p>This App allows the user to split a <b><i>Reads Library</i></b> into a randomly subsampled <b><i>Reads Libraries</i></b>, organized into a <b><i>Reads Set</i></b>.</p>
+    <hr>
+    <p>written for KBase by <a href="mailto:DCChivian@lbl.gov">Dylan Chivian</a></p>
+    <hr>
+    <p>
+    <h3>Description</h3>
+    <b>Generate Microbiome In Silico Reads</b> (From Real Reads) allows a user to skim sequences from a larger Single End or Paired End Reads Library into one or more subsample libraries.  If the number of reads in each subsample library is used to specify the split of a Paired End Library, then the resulting libraries will contain half that number of pairs (e.g., selecting 1000 reads will create 500 pairs of reads).  These subsample libraries will not contain duplicates (with respect to the source reads, unless the source reads already had duplicates).  The number of sample libraries can be specified either by percentage of reads or by raw count and the combined samples cannot contain more than the total number of reads present in the source library.
+    </p>
+    <p>
+    Sequences from configured Genomes are used to replace the sequences in the real reads following the input abundance.  The abundance can be biased by the genome length of the source genome.  This decision should be based on whether that bias is already present in the initial abundance measurement (e.g. is from shotgun metagenomic lineage abundance measurements) or needs to be added.
+    </p>
+    <p>
+    The abundances must sum to less than or equal to 100%.  If the abundnace sums to less than 100% and there are genomes in the input <b><i>Genome Set</i></b> that are not included in the abundance table, those remaining genomes are given the remaining abundnace with an even split (biased by genome length if that option is selected).  If no abundances are specified, then all genomes in the input <b><i>genome set</i></b> will be evenly split (again, with a length bias option).
+    </p>
+    <p>
+    The <i>in silico</i> reads will have errors introduce with respect to the source genome sequence following the error likelihood indicated in the FASTQ qual score at that position in the real reads.  The likelihood indicated in the official qual score definition will be trusted, even though we don't believe it to always be accurate for any technology.
+    </p>
+
+publications :
+    -
+        display-text: |
+            Arkin AP, Cottingham RW, Henry CS, Harris NL, Stevens RL, Maslov S, et al. KBase: The United States Department of Energy Systems Biology Knowledgebase. Nature Biotechnology. 2018;36: 566. doi: 10.1038/nbt.4163
+        link: https://www.nature.com/articles/nbt.4163
