@@ -53,6 +53,46 @@ class AssemblyUtil(object):
         return self._client.run_job('AssemblyUtil.get_assembly_as_fasta',
                                     [params], self._service_ver, context)
 
+    def get_fastas(self, params, context=None):
+        """
+        Given a reference list of KBase objects constructs a local Fasta file with the sequence data for each ref.
+        :param params: instance of type "KBaseOjbReferences" -> structure:
+           parameter "ref_lst" of list of type "ref" (ref: workspace
+           reference. KBaseOjbReferences: ref_lst: is an object wrapped array
+           of KBase object references, which can be of the following types: -
+           KBaseGenomes.Genome - KBaseSets.AssemblySet -
+           KBaseMetagenome.BinnedContigs - KBaseGenomes.ContigSet -
+           KBaseGenomeAnnotations.Assembly - KBaseSearch.GenomeSet -
+           KBaseSets.GenomeSet ref_fastas paths - list of paths to fasta
+           files associated with workspace object. type - workspace object
+           type parent_refs - (optional) list of associated workspace object
+           references if different from the output key)
+        :returns: instance of mapping from type "ref" (ref: workspace
+           reference. KBaseOjbReferences: ref_lst: is an object wrapped array
+           of KBase object references, which can be of the following types: -
+           KBaseGenomes.Genome - KBaseSets.AssemblySet -
+           KBaseMetagenome.BinnedContigs - KBaseGenomes.ContigSet -
+           KBaseGenomeAnnotations.Assembly - KBaseSearch.GenomeSet -
+           KBaseSets.GenomeSet ref_fastas paths - list of paths to fasta
+           files associated with workspace object. type - workspace object
+           type parent_refs - (optional) list of associated workspace object
+           references if different from the output key) to type "ref_fastas"
+           -> structure: parameter "paths" of list of String, parameter
+           "parent_refs" of list of type "ref" (ref: workspace reference.
+           KBaseOjbReferences: ref_lst: is an object wrapped array of KBase
+           object references, which can be of the following types: -
+           KBaseGenomes.Genome - KBaseSets.AssemblySet -
+           KBaseMetagenome.BinnedContigs - KBaseGenomes.ContigSet -
+           KBaseGenomeAnnotations.Assembly - KBaseSearch.GenomeSet -
+           KBaseSets.GenomeSet ref_fastas paths - list of paths to fasta
+           files associated with workspace object. type - workspace object
+           type parent_refs - (optional) list of associated workspace object
+           references if different from the output key), parameter "type" of
+           String
+        """
+        return self._client.run_job('AssemblyUtil.get_fastas',
+                                    [params], self._service_ver, context)
+
     def export_assembly_as_fasta(self, params, context=None):
         """
         A method designed especially for download, this calls 'get_assembly_as_fasta' to do

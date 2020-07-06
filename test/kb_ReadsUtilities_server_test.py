@@ -15,6 +15,7 @@ from biokbase.AbstractHandle.Client import AbstractHandle as HandleService
 from kb_ReadsUtilities.kb_ReadsUtilitiesImpl import kb_ReadsUtilities
 from installed_clients.ReadsUtilsClient import ReadsUtils
 from installed_clients.GenomeFileUtilClient import GenomeFileUtil
+from installed_clients.AssemblyUtilClient import AssemblyUtil
 
 
 class kb_ReadsUtilitiesTest(unittest.TestCase):
@@ -134,6 +135,62 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
         return new_obj_info
 
 
+    # call this method to get the WS object info of an Assembly
+    #   (will upload the example data if this is the first time the method is called during tests)
+    def getAssemblyInfo(self, assembly_basename, lib_i=0):
+        if hasattr(self.__class__, 'genomeInfo_list'):
+            try:
+                info = self.__class__.assemblyInfo_list[lib_i]
+                name = self.__class__.assemblyName_list[lib_i]
+                if info != None:
+                    if name != assembly_basename:
+                        self.__class__.assemblyInfo_list[lib_i] = None
+                        self.__class__.assemblyName_list[lib_i] = None
+                    else:
+                        return info
+            except:
+                pass
+
+        # 1) upload assembly to ws
+        shared_dir = "/kb/module/work/tmp"
+        assembly_data_file = 'data/assemblies/'+assembly_basename
+        assembly_file = os.path.join(shared_dir, os.path.basename(assembly_data_file))
+        shutil.copy(assembly_data_file, assembly_file)
+
+        SERVICE_VER = 'release'
+        #SERVICE_VER = 'dev'
+        # upload test data
+        try:
+            auClient = AssemblyUtil(os.environ['SDK_CALLBACK_URL'],
+                                    token=self.__class__.token,
+                                    service_ver=SERVICE_VER)
+        except Exception as e:
+            raise ValueError('Unable to instantiate auClient with callbackURL: '+ os.environ['SDK_CALLBACK_URL'] +' ERROR: ' + str(e))
+
+        print ("UPLOADING assembly: "+assembly_basename+" to WORKSPACE "+self.getWsName()+" ...")
+        ass_ref = auClient.save_assembly_from_fasta({
+            'file': {'path': assembly_file},
+            'workspace_name': self.getWsName(),
+            'assembly_name': assembly_basename+'.'+'Assembly'
+        })
+        new_obj_info = self.getWsClient().get_object_info_new({'objects': [{'ref': ass_ref}]})[0]
+
+        # 2) store it
+        if not hasattr(self.__class__, 'assemblyInfo_list'):
+            self.__class__.assemblyInfo_list = []
+            self.__class__.assemblyName_list = []
+        for i in range(lib_i+1):
+            try:
+                assigned = self.__class__.assemblyInfo_list[i]
+            except:
+                self.__class__.assemblyInfo_list.append(None)
+                self.__class__.assemblyName_list.append(None)
+
+        self.__class__.assemblyInfo_list[lib_i] = new_obj_info
+        self.__class__.assemblyName_list[lib_i] = assembly_basename
+        return new_obj_info
+
+
     # call this method to get the WS object info of a Single End Library (will
     # upload the example data if this is the first time the method is called during tests)
     def getSingleEndLibInfo(self, read_lib_basename, lib_i=0):
@@ -197,20 +254,30 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
                 pass
 
         # 1) upload files to shock
+        ru_params = dict()
         shared_dir = "/kb/module/work/tmp"
-        forward_data_file = 'data/'+read_lib_basename+'.fwd.fq'
+        interleaved = 1
+        forward_data_file = 'data/'+read_lib_basename
+        if not os.path.exists(forward_data_file):
+            forward_data_file = 'data/'+read_lib_basename+'.fwd.fq'
+        if not os.path.exists(forward_data_file):
+            raise ValueError ("unable to find reads lib "+read_lib_basename)
         forward_file = os.path.join(shared_dir, os.path.basename(forward_data_file))
         shutil.copy(forward_data_file, forward_file)
+        ru_params['fwd_file'] = forward_file
         reverse_data_file = 'data/'+read_lib_basename+'.rev.fq'
-        reverse_file = os.path.join(shared_dir, os.path.basename(reverse_data_file))
-        shutil.copy(reverse_data_file, reverse_file)
+        if os.path.exists(reverse_data_file):
+            interleaved = 0
+            reverse_file = os.path.join(shared_dir, os.path.basename(reverse_data_file))
+            shutil.copy(reverse_data_file, reverse_file)
+            ru_params['rev_file'] = reverse_file
+        ru_params['sequencing_tech'] = 'artificial reads'
+        ru_params['interleaved'] = interleaved
+        ru_params['wsname'] = self.getWsName()
+        ru_params['name'] = 'test-'+str(lib_i)+'.pe.reads'
 
         ru = ReadsUtils(os.environ['SDK_CALLBACK_URL'])
-        paired_end_ref = ru.upload_reads({'fwd_file': forward_file, 'rev_file': reverse_file,
-                                          'sequencing_tech': 'artificial reads',
-                                          'interleaved': 0, 'wsname': self.getWsName(),
-                                          'name': 'test-'+str(lib_i)+'.pe.reads'})['obj_ref']
-
+        paired_end_ref = ru.upload_reads(ru_params)['obj_ref']
         new_obj_info = self.getWsClient().get_object_info_new({'objects': [{'ref': paired_end_ref}]})[0]
 
         # store it
@@ -352,7 +419,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_FASTQ_to_FASTA_01_SE():
     ##
-    @unittest.skip("skipped test_KButil_FASTQ_to_FASTA_01_SE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_KButil_FASTQ_to_FASTA_01_SE()")  # uncomment to skip
     def test_KButil_FASTQ_to_FASTA_01_SE (self):
         method = 'KButil_FASTQ_to_FASTA_01_SE'
         msg = "RUNNING: "+method+"()"
@@ -387,7 +454,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Split_Reads_01_PE():
     ##
-    @unittest.skip("skipped test_KButil_Split_Reads_01_PE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_KButil_Split_Reads_01_PE()")  # uncomment to skip
     def test_KButil_Split_Reads_01_PE (self):
         method = 'KButil_Split_Reads_01_PE'
         msg = "RUNNING: "+method+"()"
@@ -447,7 +514,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Split_Reads_01_SE():
     ##
-    @unittest.skip("skipped test_KButil_Split_Reads_01_SE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_KButil_Split_Reads_01_SE()")  # uncomment to skip
     def test_KButil_Split_Reads_01_SE (self):
         method = 'KButil_Split_Reads_01_SE'
         msg = "RUNNING: "+method+"()"
@@ -507,7 +574,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Random_Subsample_Reads_01_PE():
     ##
-    @unittest.skip("skipped test_KButil_Random_Subsample_Reads_01_PE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_KButil_Random_Subsample_Reads_01_PE()")  # uncomment to skip
     def test_KButil_Random_Subsample_Reads_01_PE (self):
         method = 'KButil_Random_Subsample_Reads_01_PE'
         msg = "RUNNING: "+method+"()"
@@ -557,7 +624,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Random_Subsample_Reads_01_SE():
     ##
-    @unittest.skip("skipped test_KButil_Random_Subsample_Reads_01_SE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_KButil_Random_Subsample_Reads_01_SE()")  # uncomment to skip
     def test_KButil_Random_Subsample_Reads_01_SE (self):
         method = 'KButil_Random_Subsample_Reads_01_SE'
         msg = "RUNNING: "+method+"()"
@@ -605,81 +672,9 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
         pass
 
 
-    #### test_KButil_Merge_ReadsSet_to_OneLibrary_01_PE()
-    ##
-    @unittest.skip("skipped test_KButil_Merge_ReadsSet_to_OneLibrary_01_PE()")  # uncomment to skip
-    def test_KButil_Merge_ReadsSet_to_OneLibrary_01_PE (self):
-        method = 'KButil_Merge_ReadsSet_to_OneLibrary_01_PE'
-        msg = "RUNNING: "+method+"()"
-        print ("\n\n"+msg)
-        print ("="*len(msg)+"\n\n")
-
-        # figure out where the test data lives
-        pe_lib_set_info = self.getPairedEndLib_SetInfo(['test_quick','small_2'])
-        pprint(pe_lib_set_info)
-
-        # run method
-        base_output_name = method+'_output'
-        params = {
-            'workspace_name': self.getWsName(),
-            'input_ref': str(pe_lib_set_info[6])+'/'+str(pe_lib_set_info[0]),
-            'output_name': base_output_name,
-            'desc':'test merge'
-        }
-        result = self.getImpl().KButil_Merge_ReadsSet_to_OneLibrary(self.getContext(),params)
-        print('RESULT:')
-        pprint(result)
-
-        # check the output
-        output_name = base_output_name
-        output_type = 'KBaseFile.PairedEndLibrary'
-        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':self.getWsName() + '/' + output_name}]})
-        self.assertEqual(len(info_list),1)
-        readsLib_info = info_list[0]
-        self.assertEqual(readsLib_info[1],output_name)
-        self.assertEqual(readsLib_info[2].split('-')[0],output_type)
-        pass
-
-
-    #### test_KButil_Merge_ReadsSet_to_OneLibrary_01_SE()
-    ##
-    @unittest.skip("skipped test_KButil_Merge_ReadsSet_to_OneLibrary_01_SE()")  # uncomment to skip
-    def test_KButil_Merge_ReadsSet_to_OneLibrary_01_SE (self):
-        method = 'KButil_Merge_ReadsSet_to_OneLibrary_01_SE'
-        msg = "RUNNING: "+method+"()"
-        print ("\n\n"+msg)
-        print ("="*len(msg)+"\n\n")
-
-        # figure out where the test data lives
-        se_lib_set_info = self.getSingleEndLib_SetInfo(['test_quick','small_2'])
-        pprint(se_lib_set_info)
-
-        # run method
-        base_output_name = method+'_output'
-        params = {
-            'workspace_name': self.getWsName(),
-            'input_ref': str(se_lib_set_info[6])+'/'+str(se_lib_set_info[0]),
-            'output_name': base_output_name,
-            'desc':'test merge'
-        }
-        result = self.getImpl().KButil_Merge_ReadsSet_to_OneLibrary(self.getContext(),params)
-        print('RESULT:')
-        pprint(result)
-
-        # check the output
-        output_name = base_output_name
-        output_type = 'KBaseFile.SingleEndLibrary'
-        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':self.getWsName() + '/' + output_name}]})
-        self.assertEqual(len(info_list),1)
-        readsLib_info = info_list[0]
-        self.assertEqual(readsLib_info[1],output_name)
-        self.assertEqual(readsLib_info[2].split('-')[0],output_type)
-        pass
-
-
     #### test_KButil_Merge_MultipleReadsLibs_to_OneLibrary_01_PE()
     ##
-    @unittest.skip("skipped test_Merge_MultipleReadsLibs_to_OneLibrary_01_PE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_Merge_MultipleReadsLibs_to_OneLibrary_01_PE()")  # uncomment to skip
     def test_KButil_Merge_MultipleReadsLibs_to_OneLibrary_01_PE (self):
         method = 'KButil_Merge_MultipleReadsLibs_to_OneLibrary_01_PE'
         msg = "RUNNING: "+method+"()"
@@ -723,7 +718,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Merge_MultipleReadsLibs_to_OneLibrary_01_SE()
     ##
-    @unittest.skip("skipped test_Merge_MultipleReadsLibs_to_OneLibrary_01_SE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_Merge_MultipleReadsLibs_to_OneLibrary_01_SE()")  # uncomment to skip
     def test_KButil_Merge_MultipleReadsLibs_to_OneLibrary_01_SE (self):
         method = 'KButil_Merge_MultipleReadsLibs_to_OneLibrary_01_SE'
         msg = "RUNNING: "+method+"()"
@@ -767,7 +762,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs_01_PE():
     ##
-    @unittest.skip("skipped test_KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs_01_PE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs_01_PE()")  # uncomment to skip
     def test_KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs_01_PE (self):
         method = 'KButil_Extract_Unpaired_Reads_and_Synchronize_Pairs_01_PE'
         msg = "RUNNING: "+method+"()"
@@ -810,7 +805,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Translate_ReadsLibs_QualScores_01_PE()
     ##
-    @unittest.skip("skipped test_Translate_ReadsLibs_QualScores_01_PE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_Translate_ReadsLibs_QualScores_01_PE()")  # uncomment to skip
     def test_KButil_Translate_ReadsLibs_QualScores_01_PE (self):
         method = 'KButil_Translate_ReadsLibs_QualScores_01_PE'
         msg = "RUNNING: "+method+"()"
@@ -851,7 +846,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Translate_ReadsLibs_QualScores_01_SE()
     ##
-    @unittest.skip("skipped test_Translate_ReadsLibs_QualScores_01_SE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_Translate_ReadsLibs_QualScores_01_SE()")  # uncomment to skip
     def test_KButil_Translate_ReadsLibs_QualScores_01_SE (self):
         method = 'KButil_Translate_ReadsLibs_QualScores_01_SE'
         msg = "RUNNING: "+method+"()"
@@ -892,7 +887,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_AddInsertLen_to_ReadsLibs_01_PE()
     ##
-    @unittest.skip("skipped test_KButil_AddInsertLen_to_ReadsLibs_01_PE()")  # uncomment to skip
+    # HIDE @unittest.skip("skipped test_KButil_AddInsertLen_to_ReadsLibs_01_PE()")  # uncomment to skip
     def test_KButil_AddInsertLen_to_ReadsLibs_0_PE1 (self):
         method = 'KButil_AddInsertLen_to_ReadsLibs_01_PE'
         msg = "RUNNING: "+method+"()"
@@ -1038,7 +1033,7 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE():
     ##
-    # HIDE @unittest.skip("skipped test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE()")  # uncomment to skip
+    @unittest.skip("skipped test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE()")  # uncomment to skip
     def test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE (self):
         method = 'KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE'
         msg = "RUNNING: "+method+"()"
@@ -1127,6 +1122,69 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
         output_name = base_output_name+'-'+str(split_num-1)
         output_type = 'KBaseFile.SingleEndLibrary'
         info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':se_lib_info[7] + '/' + output_name}]})
+        self.assertEqual(len(info_list),1)
+        readsLib_info = info_list[0]
+        self.assertEqual(readsLib_info[1],output_name)
+        self.assertEqual(readsLib_info[2].split('-')[0],output_type)
+        pass
+
+
+    #### test_KButil_Fractionate_Reads_by_Contigs_01_PE():
+    ##
+    @unittest.skip("skipped test_KButil_Fractionate_Reads_by_Contigs_01_PE()")  # uncomment to skip
+    def test_KButil_Fractionate_Reads_by_Contigs_01_PE (self):
+        method = 'KButil_Fractionate_Reads_by_Contigs_01_PE'
+        msg = "RUNNING: "+method+"()"
+        print ("\n\n"+msg)
+        print ("="*len(msg)+"\n\n")
+
+        # figure out where the test data lives
+        pe_lib_info = self.getPairedEndLibInfo('seven_species_nonuniform_10K.PE_reads_paired-0.fq')
+        pprint(pe_lib_info)
+
+        assembly_info = self.getAssemblyInfo('Thermodesulfo_trim.SPAdes.contigs.fa.gz')
+        pprint(assembly_info)
+
+        # Object Info Contents
+        # 0 - obj_id objid
+        # 1 - obj_name name
+        # 2 - type_string type
+        # 3 - timestamp save_date
+        # 4 - int version
+        # 5 - username saved_by
+        # 6 - ws_id wsid
+        # 7 - ws_name workspace
+        # 8 - string chsum
+        # 9 - int size
+        # 10 - usermeta meta
+
+
+        # run method
+        split_num = 2
+        base_output_name = method+'_output'
+        params = {
+            'workspace_name': self.getWsName(),
+            'input_reads_ref': str(pe_lib_info[6])+'/'+str(pe_lib_info[0]),
+            'inout_assembly_ref': str(assembly_info[6])+'/'+str(assembly_info[0]),
+            'output_name': base_output_name,
+            'fractionate_mode':'both'
+        }
+        result = self.getImpl().KButil_Fractionate_Reads_by_Contigs(self.getContext(),params)
+        print('RESULT:')
+        pprint(result)
+
+        # check the output
+        output_name = base_output_name+'-negative_fraction'
+        output_type = 'KBaseFile.PairedEndLibrary'
+        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':pe_lib_info[7] + '/' + output_name}]})
+        self.assertEqual(len(info_list),1)
+        readsLib_info = info_list[0]
+        self.assertEqual(readsLib_info[1],output_name)
+        self.assertEqual(readsLib_info[2].split('-')[0],output_type)
+
+        output_name = base_output_name+'-positive_fraction'
+        output_type = 'KBaseFile.PairedEndLibrary'
+        info_list = self.getWsClient().get_object_info_new({'objects':[{'ref':pe_lib_info[7] + '/' + output_name}]})
         self.assertEqual(len(info_list),1)
         readsLib_info = info_list[0]
         self.assertEqual(readsLib_info[1],output_name)
