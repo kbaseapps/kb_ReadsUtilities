@@ -8,7 +8,7 @@
     "categories": ["active","util","reads"],
     "widgets": {
         "input": null,
-        "output": "kbaseReportView"
+        "output": "no-display"
     },
     "parameters": [ 
         {
