@@ -419,7 +419,9 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_FASTQ_to_FASTA_01_SE():
     ##
-    # HIDE @unittest.skip("skipped test_KButil_FASTQ_to_FASTA_01_SE()")  # uncomment to skip
+    ## Note: removing test because upload_reads is broken for FASTA, App is hidden, and no one uses FASTA for reads anymore
+    ##
+    @unittest.skip("skipped test_KButil_FASTQ_to_FASTA_01_SE()")  # uncomment to skip
     def test_KButil_FASTQ_to_FASTA_01_SE (self):
         method = 'KButil_FASTQ_to_FASTA_01_SE'
         msg = "RUNNING: "+method+"()"
