@@ -1,7 +1,7 @@
 #
 # define display information
 #
-name: Add Insert Length to Reads Libraries - v1.0.1
+name: Add Insert Length to Reads Libraries - v1.2.2
 tooltip: |
     Add insert length and standard deviation to paired-end ReadsLibraries objects.
 screenshots:
