@@ -22,8 +22,6 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import generic_protein
 
 from installed_clients.WorkspaceClient import Workspace as workspaceService
-from requests_toolbelt import MultipartEncoder  # added
-from biokbase.AbstractHandle.Client import AbstractHandle as HandleService
 
 # SDK Utils
 from installed_clients.ReadsUtilsClient import ReadsUtils
@@ -100,7 +98,6 @@ class kb_ReadsUtilities:
     
         this_id = None
         counter = 0
-        read_buf = []
         read_cnt = 0
         for line in f:
             line = line.rstrip()
@@ -374,7 +371,7 @@ class kb_ReadsUtilities:
 
         # Download Reads
         #
-        sequencing_tech = 'N/A'
+        #sequencing_tech = 'N/A'  # no longer needed
         self.log (console, "DOWNLOADING READS")  # DEBUG
         try:
             readsUtils_Client = ReadsUtils (url=self.callbackURL, token=ctx['token'])  # SDK local
@@ -388,7 +385,7 @@ class kb_ReadsUtilities:
             raise ValueError('Unable to download read library sequences from workspace: (' + str(input_ref) +")\n" + str(e))
 
         forward_reads_file_path = readsLibrary['files'][input_ref]['files']['fwd']
-        sequencing_tech     = readsLibrary['files'][input_ref]['sequencing_tech']
+        #sequencing_tech     = readsLibrary['files'][input_ref]['sequencing_tech'] # no longer needed
 
 
         #### Create the file to upload
@@ -451,13 +448,14 @@ class kb_ReadsUtilities:
                 raise ValueError('Unable to get ReadsUtils Client' +"\n" + str(e))
 
             #self.add_id_to_plus_line(output_file_path)
-            fasta_obj_ref = readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
-                                                              'name': params['output_name'],
-                                                              # remove sequencing_tech when source_reads_ref working
-                                                              #'sequencing_tech': sequencing_tech,
-                                                              'source_reads_ref': input_ref,
-                                                              'fwd_file': output_file_path
-                                                             })['obj_ref']
+            readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
+                                              'name': params['output_name'],
+                                              # remove sequencing_tech when source_reads_ref working
+                                              #'sequencing_tech': sequencing_tech,
+                                              'source_reads_ref': input_ref,
+                                              'fwd_file': output_file_path
+            })
+
                 
 
         # build output report object
