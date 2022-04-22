@@ -450,7 +450,7 @@ class kb_ReadsUtilities:
             except Exception as e:
                 raise ValueError('Unable to get ReadsUtils Client' +"\n" + str(e))
 
-            self.add_id_to_plus_line(output_file_path)
+            #self.add_id_to_plus_line(output_file_path)
             fasta_obj_ref = readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                               'name': params['output_name'],
                                                               # remove sequencing_tech when source_reads_ref working
@@ -820,8 +820,8 @@ class kb_ReadsUtilities:
                 else:
                     output_obj_name = params['output_name']+'_paired-'+str(lib_i)
                     self.log(console, 'Uploading paired reads: '+output_obj_name)
-                    self.add_id_to_plus_line(output_fwd_paired_file_path)
-                    self.add_id_to_plus_line(output_rev_paired_file_path)
+                    #self.add_id_to_plus_line(output_fwd_paired_file_path)
+                    #self.add_id_to_plus_line(output_rev_paired_file_path)
                     paired_obj_refs.append (readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                               'name': output_obj_name,
                                                                               # remove sequencing_tech when source_reads_ref working
@@ -840,7 +840,7 @@ class kb_ReadsUtilities:
 
                 output_obj_name = params['output_name']+'_unpaired-fwd'
                 self.log(console, '\nUploading trimmed unpaired forward reads: '+output_obj_name)
-                self.add_id_to_plus_line(output_fwd_unpaired_file_path)
+                #self.add_id_to_plus_line(output_fwd_unpaired_file_path)
                 unpaired_fwd_ref = readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                      'name': output_obj_name,
                                                                      # remove sequencing_tech when source_reads_ref working
@@ -858,7 +858,7 @@ class kb_ReadsUtilities:
 
                 output_obj_name = params['output_name']+'_unpaired-rev'
                 self.log(console, '\nUploading trimmed unpaired reverse reads: '+output_obj_name)
-                self.add_id_to_plus_line(output_rev_unpaired_file_path)
+                #self.add_id_to_plus_line(output_rev_unpaired_file_path)
                 unpaired_rev_ref = readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                      'name': output_obj_name,
                                                                      # remove sequencing_tech when source_reads_ref working
@@ -958,7 +958,7 @@ class kb_ReadsUtilities:
                 else:
                     output_obj_name = params['output_name']+'-'+str(lib_i)
                     self.log(console, 'Uploading paired reads: '+output_obj_name)
-                    self.add_id_to_plus_line(output_fwd_paired_file_path)
+                    #self.add_id_to_plus_line(output_fwd_paired_file_path)
                     paired_obj_refs.append( readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                               'name': output_obj_name,
                                                                               # remove sequencing_tech when source_reads_ref working
@@ -1434,8 +1434,8 @@ class kb_ReadsUtilities:
                 else:
                     output_obj_name = params['output_name']+'_paired-'+str(lib_i)
                     self.log(console, 'Uploading paired reads: '+output_obj_name)
-                    self.add_id_to_plus_line(output_fwd_paired_file_path)
-                    self.add_id_to_plus_line(output_rev_paired_file_path)
+                    #self.add_id_to_plus_line(output_fwd_paired_file_path)
+                    #self.add_id_to_plus_line(output_rev_paired_file_path)
                     paired_obj_refs.append (readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                               'name': output_obj_name,
                                                                               # remove sequencing_tech when source_reads_ref is working
@@ -1610,7 +1610,7 @@ class kb_ReadsUtilities:
                 else:
                     output_obj_name = params['output_name']+'-'+str(lib_i)
                     self.log(console, 'Uploading single end reads: '+output_obj_name)
-                    self.add_id_to_plus_line(output_fwd_paired_file_path)
+                    #self.add_id_to_plus_line(output_fwd_paired_file_path)
                     paired_obj_refs.append( readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                               'name': output_obj_name,
                                                                               # remove sequencing_tech when source_reads_ref is working
@@ -1880,8 +1880,8 @@ class kb_ReadsUtilities:
         self.log(console, 'Uploading reads library: '+output_obj_name)
 
         if input_reads_obj_type == "KBaseFile.PairedEndLibrary":
-            self.add_id_to_plus_line(combined_input_fwd_path)
-            self.add_id_to_plus_line(combined_input_rev_path)
+            #self.add_id_to_plus_line(combined_input_fwd_path)
+            #self.add_id_to_plus_line(combined_input_rev_path)
             reads_library_ref = readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                   'name': output_obj_name,
                                                                   # remove sequencing_tech when source_reads_ref is working
@@ -1892,7 +1892,7 @@ class kb_ReadsUtilities:
                                                                   'rev_file': combined_input_rev_path
                                                                   })['obj_ref']
         else:
-            self.add_id_to_plus_line(combined_input_fwd_path)
+            #self.add_id_to_plus_line(combined_input_fwd_path)
             reads_library_ref = readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                   'name': output_obj_name,
                                                                   # remove sequencing_tech when source_reads_ref is working
@@ -2127,6 +2127,7 @@ class kb_ReadsUtilities:
                 #    else:
                 #        break
                 rec_line_i = -1
+                this_header = None
                 for line in this_input_handle:
                     rec_line_i += 1
                     if rec_line_i == 3:
@@ -2134,8 +2135,12 @@ class kb_ReadsUtilities:
                     elif rec_line_i == 0:
                         if not line.startswith('@'):
                             raise ValueError ("badly formatted rec line: '"+line+"'")
-                        
-                        line = '@'+clean_ref+':'+line[1:]
+                        this_header = clean_ref+':'+line[1:]
+                        line = '@'+this_header
+                    elif rec_line_i == 2:
+                        if not line.startswith('+'):
+                            raise ValueError ("badly formatted rec line: '"+line+"'")
+                        line = '+'+this_header
                     cat_file_handle.write(line)
             os.remove (this_input_path)  # create space since we no longer need the piece file
 
@@ -2186,7 +2191,7 @@ class kb_ReadsUtilities:
         self.log(console, 'Uploading reads library: '+output_obj_name)
 
         if input_reads_obj_type == "KBaseFile.PairedEndLibrary":
-            self.add_id_to_plus_line(combined_input_fwd_path)
+            #self.add_id_to_plus_line(combined_input_fwd_path)
             reads_library_ref = readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                   'name': output_obj_name,
                                                                   # remove sequencing_tech when source_reads_ref is working
@@ -2198,7 +2203,7 @@ class kb_ReadsUtilities:
                                                                   'interleaved': 'true'
                                                                   })['obj_ref']
         else:
-            self.add_id_to_plus_line(combined_input_fwd_path)
+            #self.add_id_to_plus_line(combined_input_fwd_path)
             reads_library_ref = readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                   'name': output_obj_name,
                                                                   # remove sequencing_tech when source_reads_ref is working
@@ -2705,8 +2710,8 @@ class kb_ReadsUtilities:
                 else:
                     output_obj_name = params['output_name']+'_paired-'+str(lib_i)
                     self.log(console, 'Uploading paired reads: '+output_obj_name)
-                    self.add_id_to_plus_line(output_fwd_paired_file_path)
-                    self.add_id_to_plus_line(output_rev_paired_file_path)
+                    #self.add_id_to_plus_line(output_fwd_paired_file_path)
+                    #self.add_id_to_plus_line(output_rev_paired_file_path)
                     paired_obj_refs.append (readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                               'name': output_obj_name,
                                                                               # remove sequencing_tech when source_reads_ref is working
@@ -2728,7 +2733,7 @@ class kb_ReadsUtilities:
                     
                     output_obj_name = params['output_name']+'_unpaired-fwd'
                     self.log(console, '\nUploading trimmed unpaired forward reads: '+output_obj_name)
-                    self.add_id_to_plus_line(output_fwd_unpaired_file_path)
+                    #self.add_id_to_plus_line(output_fwd_unpaired_file_path)
                     unpaired_fwd_obj_refs.append (readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                                     'name': output_obj_name,
                                                                                     # remove sequencing_tech when source_reads_ref is working
@@ -2751,7 +2756,7 @@ class kb_ReadsUtilities:
 
                     output_obj_name = params['output_name']+'_unpaired-rev'
                     self.log(console, '\nUploading trimmed unpaired reverse reads: '+output_obj_name)
-                    self.add_id_to_plus_line(output_rev_unpaired_file_path)
+                    #self.add_id_to_plus_line(output_rev_unpaired_file_path)
                     unpaired_rev_obj_refs.append (readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                                     'name': output_obj_name,
                                                                                     # remove sequencing_tech when source_reads_ref is working
@@ -3198,8 +3203,8 @@ class kb_ReadsUtilities:
             self.log(console, 'Uploading reads library: '+output_obj_name)
 
             if reads_obj_types_list[reads_i] == "KBaseFile.PairedEndLibrary":
-                self.add_id_to_plus_line(qual33_fwd_path)
-                self.add_id_to_plus_line(qual33_rev_path)
+                #self.add_id_to_plus_line(qual33_fwd_path)
+                #self.add_id_to_plus_line(qual33_rev_path)
                 reads_library_ref = readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                       'name': output_obj_name,
                                                                       # remove sequencing_tech when source_reads_ref is working
@@ -3209,7 +3214,7 @@ class kb_ReadsUtilities:
                                                                       'rev_file': qual33_rev_path
                                                                       })['obj_ref']
             else:
-                self.add_id_to_plus_line(qual33_fwd_path)
+                #self.add_id_to_plus_line(qual33_fwd_path)
                 reads_library_ref = readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                       'name': output_obj_name,
                                                                       # remove sequencing_tech when source_reads_ref is working
@@ -4295,8 +4300,8 @@ class kb_ReadsUtilities:
                 else:
                     output_obj_name = params['output_name']+'_paired-'+str(lib_i)
                     self.log(console, 'Uploading paired reads: '+output_obj_name)
-                    self.add_id_to_plus_line(output_fwd_paired_file_path)
-                    self.add_id_to_plus_line(output_rev_paired_file_path)
+                    #self.add_id_to_plus_line(output_fwd_paired_file_path)
+                    #self.add_id_to_plus_line(output_rev_paired_file_path)
                     paired_obj_refs.append (readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                               'name': output_obj_name,
                                                                               # remove sequencing_tech when source_reads_ref is working
@@ -4538,7 +4543,7 @@ class kb_ReadsUtilities:
                 else:
                     output_obj_name = params['output_name']+'-'+str(lib_i)
                     self.log(console, 'Uploading single end reads: '+output_obj_name)
-                    self.add_id_to_plus_line(output_fwd_paired_file_path)
+                    #self.add_id_to_plus_line(output_fwd_paired_file_path)
                     paired_obj_refs.append (readsUtils_Client.upload_reads ({ 'wsname': str(params['workspace_name']),
                                                                               'name': output_obj_name,
                                                                               # remove sequencing_tech when source_reads_ref is working

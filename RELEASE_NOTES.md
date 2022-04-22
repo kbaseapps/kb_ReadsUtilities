@@ -1,6 +1,6 @@
 ### Version 1.2.2
 __Changes__
-- add ID to '+' line so fastQValidator doesn't fail file in ReadsUtils.upload_reads()
+- fixed unmatched ID on '+' line in Merge_Reads_Libs
 - removed out-of-date direct shock imports
 - removed test for deprecated and hidden FASTQ_to_FASTA() method
 
