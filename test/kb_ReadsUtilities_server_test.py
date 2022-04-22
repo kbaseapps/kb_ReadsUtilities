@@ -937,7 +937,9 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_PE():
     ##
-    # HIDE @unittest.skip("skipped test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_PE()")  # uncomment to skip
+    ##  note: skipping until method ready
+    ##
+    @unittest.skip("skipped test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_PE()")  # uncomment to skip
     def test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_PE (self):
         method = 'KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_PE'
         msg = "RUNNING: "+method+"()"
@@ -1035,7 +1037,9 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE():
     ##
-    # HIDE @unittest.skip("skipped test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE()")  # uncomment to skip
+    ##  note: skipping until method ready
+    ##
+    @unittest.skip("skipped test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE()")  # uncomment to skip
     def test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE (self):
         method = 'KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE'
         msg = "RUNNING: "+method+"()"
@@ -1133,7 +1137,9 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Fractionate_Reads_by_Contigs_01_PE():
     ##
-    # HIDE @unittest.skip("skipped test_KButil_Fractionate_Reads_by_Contigs_01_PE()")  # uncomment to skip
+    ##  note: skipping until method ready
+    ##
+    @unittest.skip("skipped test_KButil_Fractionate_Reads_by_Contigs_01_PE()")  # uncomment to skip
     def test_KButil_Fractionate_Reads_by_Contigs_01_PE (self):
         method = 'KButil_Fractionate_Reads_by_Contigs_01_PE'
         msg = "RUNNING: "+method+"()"
