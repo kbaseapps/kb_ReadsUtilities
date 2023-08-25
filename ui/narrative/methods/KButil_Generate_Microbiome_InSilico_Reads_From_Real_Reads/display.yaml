@@ -100,7 +100,7 @@ parameter-groups :
 description : |
     <p>This App allows the user to split a <b><i>Reads Library</i></b> into a randomly subsampled <b><i>Reads Libraries</i></b>, organized into a <b><i>Reads Set</i></b>.</p>
     <hr>
-    <p>written for KBase by <a href="mailto:DCChivian@lbl.gov">Dylan Chivian</a></p>
+    <p>written for KBase by <a href="https://narrative.kbase.us/#people/dylan">Dylan Chivian</a></p>
     <hr>
     <p>
     <h3>Description</h3>

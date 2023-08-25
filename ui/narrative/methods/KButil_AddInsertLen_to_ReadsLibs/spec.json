@@ -1,9 +1,9 @@
 {
-    "ver": "1.0.0",
+    "ver": "1.2.2",
     "authors": [
         "dylan"
     ],
-    "contact": "http://kbase.us/contact-us/",
+    "contact": "http://www.kbase.us/support/",
     "visible": true,
     "categories": ["active","util","reads"],
     "widgets": {

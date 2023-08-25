@@ -1,7 +1,7 @@
 #
 # define display information
 #
-name: Randomly Subsample Reads - v1.0.2
+name: Randomly Subsample Reads - v1.2.2
 tooltip: |
     Split a reads library into a set of randomly subsampled reads libraries.
 screenshots:
@@ -76,7 +76,7 @@ parameter-groups :
 description : |
     <p>Randomly Subsample Reads allows users to split a reads library into a group of randomly subsampled reads libraries organized into a <b><i>Reads Set</i></b>. This App can be used for sampling a subset of your data for testing Apps. If the number of reads in each subsample library is used to specify the split of a paired-end library, then the resulting libraries will contain half that number of pairs (e.g., selecting 1000 reads will create 500 pairs of reads). These subsampled libraries will not contain duplicates (with respect to the source reads) unless the source reads already had duplicates. The number of sample libraries can be specified either by a percentage of reads or by a raw count, and the combined samples cannot contain more than the total number of reads present in the source library.</p>
 
-    <p><strong>Team members who developed &amp; deployed App in KBase:</strong> Dylan Chivian. For questions, please <a href=”http://kbase.us/contact-us/”>contact us</a>.</p>
+    <p><strong>Team members who developed &amp; deployed App in KBase:</strong> <a href="https://narrative.kbase.us/#people/dylan">Dylan Chivian</a>. For questions, please <a href=”http://www.kbase.us/support/”>contact us</a>.</p>
 
 publications :
     -

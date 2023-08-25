@@ -1,7 +1,7 @@
 #
 # define display information
 #
-name: Add Insert Length to Reads Libraries - v1.0.1
+name: Add Insert Length to Reads Libraries - v1.2.2
 tooltip: |
     Add insert length and standard deviation to paired-end ReadsLibraries objects.
 screenshots:
@@ -54,7 +54,7 @@ description : |
 
     <p><b>Insert Length Standard Deviation:</b> Some protocols for shearing DNA are more precise than others. The distribution of lengths may be very tight (with a standard deviation approaching zero) or much broader (perhaps on the order of 10% or more of the average insert length). A typical standard deviation value for Illumina 450bp inserts might be around 15bp.</p>
 
-    <p><strong>Team members who developed &amp; deployed algorithm in KBase:</strong> Dylan Chivian. For questions, please <a href=”http://kbase.us/contact-us/”>contact us</a>.</p>
+    <p><strong>Team members who developed &amp; deployed algorithm in KBase:</strong> <a href="https://narrative.kbase.us/#people/dylan">Dylan Chivian</a>. For questions, please <a href=”http://www.kbase.us/support/”>contact us</a>.</p>
 
 
 publications :
