@@ -1,7 +1,7 @@
 #
 # define display information
 #
-name: Translate Reads Libraries' Quality Scores - v1.0.1
+name: Translate Reads Libraries' Quality Scores - v1.2.2
 tooltip: |
     Allows users to translate reads libraries' quality scores from phred64 to phred33.
 screenshots:
@@ -39,7 +39,7 @@ description : |
 
     <p>Phred33 is used for Sanger, 454, SRA, Illumina >= 1.8, so these files do not need to be converted to phred33. Illumina <= 1.7 is phred64, and often needs to be converted to phred33 to be processed correctly by modern bioinformatics tools.</p>
 
-    <strong>Team members who developed &amp; deployed algorithm in KBase:</strong> Dylan Chivian. For questions, please <a href=”http://kbase.us/contact-us/”>contact us</a>.</p>
+    <strong>Team members who developed &amp; deployed algorithm in KBase:</strong> <a href="https://narrative.kbase.us/#people/dylan">Dylan Chivian</a>. For questions, please <a href=”http://www.kbase.us/support/”>contact us</a>.</p>
 
 publications :
     -

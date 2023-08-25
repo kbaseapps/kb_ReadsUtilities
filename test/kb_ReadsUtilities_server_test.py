@@ -419,7 +419,9 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_FASTQ_to_FASTA_01_SE():
     ##
-    # HIDE @unittest.skip("skipped test_KButil_FASTQ_to_FASTA_01_SE()")  # uncomment to skip
+    ## Note: removing test because upload_reads is broken for FASTA, App is hidden, and no one uses FASTA for reads anymore
+    ##
+    @unittest.skip("skipped test_KButil_FASTQ_to_FASTA_01_SE()")  # uncomment to skip
     def test_KButil_FASTQ_to_FASTA_01_SE (self):
         method = 'KButil_FASTQ_to_FASTA_01_SE'
         msg = "RUNNING: "+method+"()"
@@ -686,9 +688,9 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
         pprint(pe_lib_info_1)
         pe_lib_info_2 = self.getPairedEndLibInfo('small', lib_i=1)
         pprint(pe_lib_info_2)
-        pe_lib_info_3 = self.getPairedEndLibInfo('small_2',lib_i=2)
+        pe_lib_info_3 = self.getPairedEndLibInfo('small_2', lib_i=2)
         pprint(pe_lib_info_3)
-
+        
         # run method
         input_refs = [ str(pe_lib_info_1[6])+'/'+str(pe_lib_info_1[0]),
                        str(pe_lib_info_2[6])+'/'+str(pe_lib_info_2[0]),
@@ -935,6 +937,8 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_PE():
     ##
+    ##  note: skipping until method ready
+    ##
     @unittest.skip("skipped test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_PE()")  # uncomment to skip
     def test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_PE (self):
         method = 'KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_PE'
@@ -1033,6 +1037,8 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
     #### test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE():
     ##
+    ##  note: skipping until method ready
+    ##
     @unittest.skip("skipped test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE()")  # uncomment to skip
     def test_KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE (self):
         method = 'KButil_Generate_Microbiome_InSilico_Reads_From_Real_Reads_01_SE'
@@ -1130,6 +1136,8 @@ class kb_ReadsUtilitiesTest(unittest.TestCase):
 
 
     #### test_KButil_Fractionate_Reads_by_Contigs_01_PE():
+    ##
+    ##  note: skipping until method ready
     ##
     @unittest.skip("skipped test_KButil_Fractionate_Reads_by_Contigs_01_PE()")  # uncomment to skip
     def test_KButil_Fractionate_Reads_by_Contigs_01_PE (self):

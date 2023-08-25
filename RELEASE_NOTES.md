@@ -1,3 +1,9 @@
+### Version 1.2.2
+__Changes__
+- fixed unmatched ID on '+' line in Merge_Reads_Libs
+- removed out-of-date direct shock imports
+- removed test for deprecated and hidden FASTQ_to_FASTA() method
+
 ### Version 1.2.1
 __Changes__
 - set Merge_ReadsSet_to_OneLibrary() to inactive
